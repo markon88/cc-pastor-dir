@@ -14,7 +14,6 @@ let detailStack = []; // { type, id } — navigation history
 const mainContent = document.getElementById('main-content');
 const tabs = document.querySelectorAll('.tab-btn');
 const updateBanner = document.getElementById('update-banner');
-const offlineBanner = document.getElementById('offline-banner');
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 async function init() {
@@ -34,8 +33,10 @@ async function init() {
   } catch {
     pastors = PASTORS_DATA;
     await savePastors(pastors).catch(() => {});
-    await saveVersion(DATA_VERSION).catch(() => {});
   }
+  // Always ensure version is stored so update check has a baseline
+  const currentVersion = await getStoredVersion().catch(() => null);
+  if (!currentVersion) await saveVersion(DATA_VERSION).catch(() => {});
 
   initPastorsView(pastors);
   buildChurchList(pastors);
@@ -44,7 +45,6 @@ async function init() {
   setupTabs();
   renderTab('pastors');
   checkForUpdates();
-  setupOfflineDetection();
 }
 
 // ── Version check ─────────────────────────────────────────────────────────────
@@ -54,38 +54,27 @@ async function checkForUpdates() {
     const timer = setTimeout(() => controller.abort(), 3000);
     const res = await fetch('/api/data-version', { signal: controller.signal });
     clearTimeout(timer);
-    if (!res.ok) return;
+    if (!res.ok) return; // offline or error — fail silently
     const { version } = await res.json();
     const stored = await getStoredVersion();
     if (stored && version !== stored) {
-      showUpdateBanner();
-    } else if (!stored) {
-      await saveVersion(DATA_VERSION);
+      showUpdateBanner(version);
     }
   } catch {
     // Offline or timeout — fail silently
   }
 }
 
-function showUpdateBanner() {
-  updateBanner.hidden = false;
-  updateBanner.querySelector('#reload-btn').addEventListener('click', async () => {
-    // Re-seed from embedded data (new deploy will have updated data.js)
+function showUpdateBanner(newVersion) {
+  updateBanner.style.display = 'flex';
+  document.getElementById('reload-btn').addEventListener('click', async () => {
     await savePastors(PASTORS_DATA).catch(() => {});
-    await saveVersion(DATA_VERSION).catch(() => {});
+    await saveVersion(newVersion).catch(() => {});
     location.reload();
-  });
-  updateBanner.querySelector('#dismiss-btn').addEventListener('click', () => {
-    updateBanner.hidden = true;
-  });
-}
-
-// ── Offline detection ─────────────────────────────────────────────────────────
-function setupOfflineDetection() {
-  const update = () => { offlineBanner.hidden = navigator.onLine; };
-  window.addEventListener('online', update);
-  window.addEventListener('offline', update);
-  update();
+  }, { once: true });
+  document.getElementById('dismiss-btn').addEventListener('click', () => {
+    updateBanner.style.display = 'none';
+  }, { once: true });
 }
 
 // ── Tab navigation ────────────────────────────────────────────────────────────

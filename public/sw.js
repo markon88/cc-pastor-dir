@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pastor-dir-v1';
+const CACHE_NAME = 'pastor-dir-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -34,12 +34,10 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Network-first for version check
+  // Network-first for version check — return 503 on failure so app ignores it
   if (url.pathname === '/api/data-version') {
     e.respondWith(
-      fetch(e.request).catch(() => new Response('{"version":"offline"}', {
-        headers: { 'Content-Type': 'application/json' }
-      }))
+      fetch(e.request).catch(() => new Response(null, { status: 503 }))
     );
     return;
   }
