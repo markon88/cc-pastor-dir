@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a5276">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CC Pastors">
+  <meta name="description" content="Carolina Conference SDA Pastor Directory">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="stylesheet" href="/css/app.css">
+  <title>CC Pastors</title>
+</head>
+<body>
+  <div id="app">
+    <div id="banners">
+      <div id="update-banner" class="banner banner-update" hidden>
+        <span>📋 Directory update available</span>
+        <div class="banner-actions">
+          <button class="banner-btn banner-btn-primary" id="reload-btn">Update</button>
+          <button class="banner-btn" id="dismiss-btn">Later</button>
+        </div>
+      </div>
+      <div id="offline-banner" class="banner banner-offline" hidden>
+        <span>📵 You're offline — directory available</span>
+      </div>
+    </div>
+
+    <div id="main-content"></div>
+
+    <nav id="tab-bar" role="tablist">
+      <button class="tab-btn active" data-tab="pastors" role="tab" aria-label="Pastors">
+        <span class="tab-icon">👤</span>
+        <span>Pastors</span>
+      </button>
+      <button class="tab-btn" data-tab="churches" role="tab" aria-label="Churches">
+        <span class="tab-icon">⛪</span>
+        <span>Churches</span>
+      </button>
+      <button class="tab-btn" data-tab="groups" role="tab" aria-label="AMA Groups">
+        <span class="tab-icon">👥</span>
+        <span>Groups</span>
+      </button>
+    </nav>
+  </div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
