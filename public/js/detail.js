@@ -77,12 +77,30 @@ export function renderPastorDetail(container, pastor, onBack) {
 export function renderChurchDetail(container, church, onSelectPastor, onBack) {
   if (!church) { container.innerHTML = '<div class="empty-state">Church not found</div>'; return; }
 
+  const addr = church.address;
+  let addrHtml = '';
+  if (addr) {
+    const mapsQuery = encodeURIComponent(`${addr.street}, ${addr.city}, ${addr.state} ${addr.zip}`);
+    const mapsUrl = `https://maps.google.com/?q=${mapsQuery}`;
+    addrHtml = `
+      <div class="detail-section">
+        <div class="detail-label">Address</div>
+        <a href="${mapsUrl}" class="church-address-link" target="_blank" rel="noopener">
+          <div class="church-address-street">${escHtml(addr.street)}</div>
+          <div class="church-address-city">${escHtml(addr.city)}, ${escHtml(addr.state)} ${escHtml(addr.zip)}</div>
+          <div class="church-directions-hint">Tap for directions</div>
+        </a>
+      </div>
+    `;
+  }
+
   container.innerHTML = `
     <div class="detail-header">
       <button class="back-btn" id="church-detail-back">← Back</button>
     </div>
     <div class="detail-body">
       <h2 class="detail-name">${escHtml(church.name)}</h2>
+      ${addrHtml}
       <div class="detail-section">
         <div class="detail-label">Pastor${church.pastors.length > 1 ? 's' : ''}</div>
         ${church.pastors.map(p => `
