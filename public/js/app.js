@@ -110,7 +110,7 @@ function renderTab(tab) {
 function showPastorDetail(id) {
   const pastor = pastors.find(p => p.id === id);
   detailStack.push({ type: 'pastor', id });
-  renderPastorDetail(mainContent, pastor, goBack);
+  renderPastorDetail(mainContent, pastor, goBack, name => showChurchDetail(name));
 }
 
 function showChurchDetail(name) {
