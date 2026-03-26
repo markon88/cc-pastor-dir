@@ -295,6 +295,47 @@ html, body {
   text-decoration: none;
 }
 
+.church-address-link {
+  display: block;
+  text-decoration: none;
+  background: var(--primary-light);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.church-address-link:active {
+  background: color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.church-address-street {
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.church-address-city {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin-top: 2px;
+}
+
+.church-directions-hint {
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.church-directions-hint::before {
+  content: "↗";
+  font-size: 13px;
+}
+
 .tag {
   font-size: 10px;
   background: var(--primary-light);

@@ -1,4 +1,5 @@
 import { searchChurches } from './search.js';
+import { CHURCH_ADDRESSES } from './church_data.js';
 
 let allChurches = [];
 let searchQuery = '';
@@ -11,7 +12,9 @@ export function buildChurchList(pastors) {
       map.get(name).pastors.push(p);
     });
   });
-  allChurches = Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  allChurches = Array.from(map.values())
+    .map(c => ({ ...c, address: CHURCH_ADDRESSES[c.name] || null }))
+    .sort((a, b) => a.name.localeCompare(b.name));
   return allChurches;
 }
 
@@ -45,10 +48,11 @@ function renderList(listEl, onSelect) {
 
   listEl.innerHTML = filtered.map(c => {
     const pastorNames = c.pastors.map(p => p.displayName).join(', ');
+    const location = c.address ? `${c.address.city}, ${c.address.state}` : '';
     return `
       <div class="list-item" data-name="${escHtml(c.name)}">
         <div class="item-name">${escHtml(c.name)}</div>
-        <div class="item-sub">${escHtml(pastorNames)}</div>
+        <div class="item-sub">${location ? `<span class="item-location">${escHtml(location)}</span> · ` : ''}${escHtml(pastorNames)}</div>
       </div>
     `;
   }).join('');
