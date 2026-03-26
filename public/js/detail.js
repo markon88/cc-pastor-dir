@@ -1,6 +1,6 @@
 import { generateVCard } from './contacts.js';
 
-export function renderPastorDetail(container, pastor, onBack) {
+export function renderPastorDetail(container, pastor, onBack, onSelectChurch) {
   if (!pastor) { container.innerHTML = '<div class="empty-state">Pastor not found</div>'; return; }
 
   const addr = pastor.address || {};
@@ -22,7 +22,7 @@ export function renderPastorDetail(container, pastor, onBack) {
       ${pastor.churches && pastor.churches.length ? `
         <div class="detail-section">
           <div class="detail-label">Church${pastor.churches.length > 1 ? 'es' : ''}</div>
-          ${pastor.churches.map(c => `<div class="detail-value">${escHtml(c)}</div>`).join('')}
+          ${pastor.churches.map(c => `<div class="detail-value church-link" data-name="${escHtml(c)}" style="cursor:pointer;color:var(--primary);">${escHtml(c)}</div>`).join('')}
         </div>
       ` : ''}
 
@@ -72,6 +72,11 @@ export function renderPastorDetail(container, pastor, onBack) {
 
   container.querySelector('#detail-back').addEventListener('click', onBack);
   container.querySelector('#add-contact-btn').addEventListener('click', () => generateVCard(pastor));
+  if (onSelectChurch) {
+    container.querySelectorAll('.church-link').forEach(el => {
+      el.addEventListener('click', () => onSelectChurch(el.dataset.name));
+    });
+  }
 }
 
 export function renderChurchDetail(container, church, onSelectPastor, onBack) {
