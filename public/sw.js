@@ -14,7 +14,6 @@ const ASSETS = [
   '/js/support.js',
   '/js/admin.js',
   '/manifest.json',
-  '/changelog.html',
 ];
 
 self.addEventListener('install', e => {
@@ -41,8 +40,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // All API routes go directly to the network — never cache auth or data responses
-  if (url.pathname.startsWith('/api/')) {
+  // API routes and changelog go directly to the network — never cache these
+  if (url.pathname.startsWith('/api/') || url.pathname === '/changelog.html') {
     e.respondWith(
       fetch(e.request).catch(() => new Response(null, { status: 503 }))
     );
