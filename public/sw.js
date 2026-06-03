@@ -1,10 +1,9 @@
-const CACHE_NAME = 'pastor-dir-v2';
+const CACHE_NAME = 'pastor-dir-v10.0';
 const ASSETS = [
   '/',
   '/index.html',
   '/css/app.css',
   '/js/app.js',
-  '/js/data.js',
   '/js/db.js',
   '/js/search.js',
   '/js/pastors.js',
@@ -12,7 +11,10 @@ const ASSETS = [
   '/js/ama.js',
   '/js/detail.js',
   '/js/contacts.js',
+  '/js/support.js',
+  '/js/admin.js',
   '/manifest.json',
+  '/changelog.html',
 ];
 
 self.addEventListener('install', e => {
@@ -20,6 +22,11 @@ self.addEventListener('install', e => {
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
   self.skipWaiting();
+});
+
+// Allow the client to trigger skipWaiting manually (e.g. from an Update button)
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
@@ -34,8 +41,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Network-first for version check — return 503 on failure so app ignores it
-  if (url.pathname === '/api/data-version') {
+  // All API routes go directly to the network — never cache auth or data responses
+  if (url.pathname.startsWith('/api/')) {
     e.respondWith(
       fetch(e.request).catch(() => new Response(null, { status: 503 }))
     );

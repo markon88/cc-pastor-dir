@@ -29,10 +29,14 @@ export function renderAmaView(container, onSelectGroup) {
   const listEl = container.querySelector('#ama-list');
   listEl.innerHTML = allGroups.map(g => {
     const count = g.pastorIds.length;
+    const leader = g.leaderId ? allPastors.find(p => p.id === g.leaderId) : null;
+    const sub = leader
+      ? `${count} pastor${count !== 1 ? 's' : ''} · Leader: ${escHtml(leader.displayName)}`
+      : `${count} pastor${count !== 1 ? 's' : ''}`;
     return `
       <div class="list-item" data-id="${g.id}">
         <div class="item-name">${escHtml(g.name)}</div>
-        <div class="item-sub">${count} pastor${count !== 1 ? 's' : ''}</div>
+        <div class="item-sub">${sub}</div>
       </div>
     `;
   }).join('');
@@ -64,12 +68,14 @@ export function renderAmaGroupDetail(container, groupId, onSelectPastor, onBack)
     </div>
     <div class="group-actions">
       ${emails.length ? `<a href="mailto:${emails.join(',')}" class="action-btn action-email">Group Email</a>` : ''}
-      ${mobiles.length ? `<a href="sms:${mobiles.map(m=>'+1'+m).join('&')}" class="action-btn action-text">Group Text</a>` : ''}
     </div>
     <div class="item-list" id="ama-pastor-list">
       ${pastors.map(p => `
         <div class="list-item" data-id="${p.id}">
-          <div class="item-name">${escHtml(p.displayName)}</div>
+          <div class="item-name">
+            ${escHtml(p.displayName)}
+            ${p.id === group.leaderId ? '<span class="tag" style="margin-left:6px">Leader</span>' : ''}
+          </div>
           <div class="item-sub">${escHtml((p.churches || [])[0] || '')}</div>
         </div>
       `).join('')}

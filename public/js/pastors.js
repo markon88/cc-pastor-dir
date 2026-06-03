@@ -37,8 +37,6 @@ export function renderPastorsView(container, onSelect) {
   });
 
   renderList(listEl, onSelect);
-  // Focus search on tab switch
-  searchEl.focus();
 }
 
 function renderList(listEl, onSelect) {

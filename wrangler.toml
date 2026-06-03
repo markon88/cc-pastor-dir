@@ -1,3 +1,13 @@
 name = "cc-pastor-dir"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "./public"
+
+[[d1_databases]]
+binding      = "DB"
+database_name = "cc-pastor-dir-auth"
+database_id  = "4f1bf013-7023-4281-b04a-9e08dcfc0a5f"
+
+[vars]
+# Set GOOGLE_CLIENT_ID here (non-secret). Secrets go via: wrangler secret put
+# GOOGLE_CLIENT_SECRET, JWT_SECRET, ADMIN_EMAILS
+GOOGLE_CLIENT_ID = "735520241819-vjg846eaqsagtk3qtm5ul2alq6dgi9q0.apps.googleusercontent.com"

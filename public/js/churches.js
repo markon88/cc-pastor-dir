@@ -1,10 +1,9 @@
 import { searchChurches } from './search.js';
-import { CHURCH_ADDRESSES } from './church_data.js';
 
 let allChurches = [];
 let searchQuery = '';
 
-export function buildChurchList(pastors) {
+export function buildChurchList(pastors, churchAddresses = {}) {
   const map = new Map();
   pastors.forEach(p => {
     (p.churches || []).forEach(name => {
@@ -13,7 +12,7 @@ export function buildChurchList(pastors) {
     });
   });
   allChurches = Array.from(map.values())
-    .map(c => ({ ...c, address: CHURCH_ADDRESSES[c.name] || null }))
+    .map(c => ({ ...c, address: churchAddresses[c.name] || null }))
     .sort((a, b) => a.name.localeCompare(b.name));
   return allChurches;
 }
@@ -35,7 +34,6 @@ export function renderChurchesView(container, onSelect) {
   });
 
   renderList(listEl, onSelect);
-  searchEl.focus();
 }
 
 function renderList(listEl, onSelect) {

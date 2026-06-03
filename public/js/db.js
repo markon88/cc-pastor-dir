@@ -63,3 +63,43 @@ export async function saveVersion(version) {
     tx.onerror = e => reject(e.target.error);
   });
 }
+
+export async function saveAmaGroups(groups) {
+  const d = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(META_STORE, 'readwrite');
+    tx.objectStore(META_STORE).put(JSON.stringify(groups), 'ama_groups');
+    tx.oncomplete = resolve;
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+export async function getAmaGroups() {
+  const d = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(META_STORE, 'readonly');
+    const req = tx.objectStore(META_STORE).get('ama_groups');
+    req.onsuccess = e => resolve(e.target.result ? JSON.parse(e.target.result) : null);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+export async function saveChurchAddresses(addresses) {
+  const d = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(META_STORE, 'readwrite');
+    tx.objectStore(META_STORE).put(JSON.stringify(addresses), 'church_addresses');
+    tx.oncomplete = resolve;
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+export async function getChurchAddresses() {
+  const d = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(META_STORE, 'readonly');
+    const req = tx.objectStore(META_STORE).get('church_addresses');
+    req.onsuccess = e => resolve(e.target.result ? JSON.parse(e.target.result) : null);
+    req.onerror = e => reject(e.target.error);
+  });
+}

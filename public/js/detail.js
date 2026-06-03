@@ -1,6 +1,6 @@
 import { generateVCard } from './contacts.js';
 
-export function renderPastorDetail(container, pastor, onBack, onSelectChurch) {
+export function renderPastorDetail(container, pastor, onBack, onSelectChurch, onSelectAmaGroup) {
   if (!pastor) { container.innerHTML = '<div class="empty-state">Pastor not found</div>'; return; }
 
   const addr = pastor.address || {};
@@ -29,7 +29,9 @@ export function renderPastorDetail(container, pastor, onBack, onSelectChurch) {
       ${hasAddr ? `
         <div class="detail-section">
           <div class="detail-label">Address</div>
-          <div class="detail-value">${addrDisplay}</div>
+          <div class="detail-value" id="pastor-addr" style="cursor:pointer;">${addrDisplay}
+            <div class="church-directions-hint">Tap for directions</div>
+          </div>
         </div>
       ` : ''}
 
@@ -54,10 +56,10 @@ export function renderPastorDetail(container, pastor, onBack, onSelectChurch) {
         </div>
       ` : ''}
 
-      ${pastor.amaGroup ? `
+      ${pastor.amaGroup && pastor.amaGroup.length ? `
         <div class="detail-section">
           <div class="detail-label">AMA Group</div>
-          <div class="detail-value">${escHtml(pastor.amaGroup)}</div>
+          ${pastor.amaGroup.map(g => `<div class="detail-value ama-group-link" data-group="${escHtml(g)}" style="cursor:pointer;color:var(--primary);">${escHtml(g)}</div>`).join('')}
         </div>
       ` : ''}
     </div>
@@ -72,9 +74,17 @@ export function renderPastorDetail(container, pastor, onBack, onSelectChurch) {
 
   container.querySelector('#detail-back').addEventListener('click', onBack);
   container.querySelector('#add-contact-btn').addEventListener('click', () => generateVCard(pastor));
+  if (hasAddr) {
+    container.querySelector('#pastor-addr').addEventListener('click', () => openMaps(addr));
+  }
   if (onSelectChurch) {
     container.querySelectorAll('.church-link').forEach(el => {
       el.addEventListener('click', () => onSelectChurch(el.dataset.name));
+    });
+  }
+  if (onSelectAmaGroup) {
+    container.querySelectorAll('.ama-group-link').forEach(el => {
+      el.addEventListener('click', () => onSelectAmaGroup(el.dataset.group));
     });
   }
 }
@@ -85,16 +95,14 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack) {
   const addr = church.address;
   let addrHtml = '';
   if (addr) {
-    const mapsQuery = encodeURIComponent(`${addr.street}, ${addr.city}, ${addr.state} ${addr.zip}`);
-    const mapsUrl = `https://maps.google.com/?q=${mapsQuery}`;
     addrHtml = `
       <div class="detail-section">
         <div class="detail-label">Address</div>
-        <a href="${mapsUrl}" class="church-address-link" target="_blank" rel="noopener">
+        <div class="church-address-link" id="church-addr" style="cursor:pointer;">
           <div class="church-address-street">${escHtml(addr.street)}</div>
           <div class="church-address-city">${escHtml(addr.city)}, ${escHtml(addr.state)} ${escHtml(addr.zip)}</div>
           <div class="church-directions-hint">Tap for directions</div>
-        </a>
+        </div>
       </div>
     `;
   }
@@ -118,9 +126,18 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack) {
   `;
 
   container.querySelector('#church-detail-back').addEventListener('click', onBack);
+  if (addr) {
+    container.querySelector('#church-addr').addEventListener('click', () => openMaps(addr));
+  }
   container.querySelectorAll('.pastor-link').forEach(el => {
     el.addEventListener('click', () => onSelectPastor(el.dataset.id));
   });
+}
+
+function openMaps(addr) {
+  const query = encodeURIComponent(`${addr.street}, ${addr.city}, ${addr.state} ${addr.zip}`);
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  window.location.href = isIOS ? `maps://?daddr=${query}` : `geo:0,0?q=${query}`;
 }
 
 function formatPhone(num) {

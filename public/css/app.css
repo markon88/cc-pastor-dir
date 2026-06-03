@@ -36,7 +36,11 @@ html, body {
   margin: 0 auto;
   background: var(--surface);
   box-shadow: 0 0 20px rgba(0,0,0,0.08);
+  padding-top: env(safe-area-inset-top);
 }
+
+#app.hidden { display: none; }
+.hidden { display: none; }
 
 #banners { flex-shrink: 0; }
 
@@ -384,6 +388,208 @@ html, body {
 .action-text   { background: #8e44ad;        color: white; }
 .action-email  { background: var(--accent);  color: white; }
 .action-contact{ background: var(--primary); color: white; }
+
+
+/* ── Support Page ────────────────────────────────────────────────────────── */
+.support-body {
+  padding: 20px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.support-tagline {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--primary);
+  line-height: 1.4;
+  font-style: italic;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.support-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.support-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-sub);
+}
+
+.support-section-desc {
+  font-size: 14px;
+  color: var(--text-sub);
+  line-height: 1.4;
+  margin-top: -4px;
+}
+
+.support-btn {
+  display: block;
+  padding: 13px 16px;
+  border-radius: 10px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--primary);
+  color: white;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s;
+}
+
+.support-btn:active { opacity: 0.75; }
+
+.support-btn-alt {
+  background: transparent;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+
+.support-btn-thai {
+  background: var(--amber);
+  color: white;
+}
+
+.support-story {
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.support-story p {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.support-story p + p { margin-top: 12px; }
+
+/* ── Login Screen ────────────────────────────────────────────────────────── */
+#login-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px;
+}
+
+#login-screen.hidden { display: none; }
+
+.login-card {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 40px 28px 36px;
+  max-width: 340px;
+  width: 100%;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.login-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  margin-bottom: 4px;
+}
+
+.login-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0;
+}
+
+.login-subtitle {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin: 0 0 12px;
+}
+
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: white;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+
+.google-btn:active { background: var(--bg); }
+
+.login-error {
+  font-size: 13px;
+  color: var(--red);
+  background: #fdecea;
+  border-radius: 8px;
+  padding: 10px 14px;
+  width: 100%;
+  line-height: 1.4;
+}
+
+.login-error.hidden { display: none; }
+
+/* ── Admin View ──────────────────────────────────────────────────────────── */
+.admin-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-add-row .search-input { flex: 1; }
+.admin-add-row .support-btn  { flex-shrink: 0; width: auto; padding: 13px 20px; }
+
+.admin-email-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+
+.admin-email-row:last-child { border-bottom: none; }
+
+.admin-email-info { flex: 1; min-width: 0; }
+.admin-email-info .item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.admin-delete-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 1.5px solid var(--red);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-delete-btn:disabled { opacity: 0.5; }
 
 /* ── Group actions (AMA) ─────────────────────────────────────────────────── */
 .group-actions {
