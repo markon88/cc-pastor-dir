@@ -38,6 +38,21 @@ export async function onRequestGet({ request, env }) {
   const allowed = await isEmailAllowed(email, env.DB);
   if (!allowed)   return Response.redirect(`${origin}/?error=not_allowed`, 302);
 
+  if (env.DB) {
+    try {
+      await env.DB.prepare(`
+        INSERT INTO user_activity (email, name, picture, first_login, last_login, last_seen, login_count, open_count)
+        VALUES (?, ?, ?, datetime('now'), datetime('now'), datetime('now'), 1, 0)
+        ON CONFLICT(email) DO UPDATE SET
+          name        = excluded.name,
+          picture     = excluded.picture,
+          last_login  = datetime('now'),
+          last_seen   = datetime('now'),
+          login_count = login_count + 1
+      `).bind(email, name ?? null, picture ?? null).run();
+    } catch {}
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const exp = now + 30 * 24 * 60 * 60;
   const token = await signJWT({ email, name, picture, iat: now, exp }, env.JWT_SECRET);

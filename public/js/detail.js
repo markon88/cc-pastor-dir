@@ -114,6 +114,12 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack) {
     <div class="detail-body">
       <h2 class="detail-name">${escHtml(church.name)}</h2>
       ${addrHtml}
+      ${church.membership != null ? `
+        <div class="detail-section">
+          <div class="detail-label">Membership</div>
+          <div class="detail-value">${church.membership}</div>
+        </div>
+      ` : ''}
       <div class="detail-section">
         <div class="detail-label">Pastor${church.pastors.length > 1 ? 's' : ''}</div>
         ${church.pastors.map(p => `

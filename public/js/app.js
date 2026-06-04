@@ -1,10 +1,14 @@
 import { savePastors, getPastors, getStoredVersion, saveVersion, saveAmaGroups, getAmaGroups, saveChurchAddresses, getChurchAddresses } from './db.js';
+import { DATA_VERSION } from './data-version.js';
 import { initPastorsView, renderPastorsView } from './pastors.js';
 import { buildChurchList, renderChurchesView, getChurchByName } from './churches.js';
 import { initAmaView, renderAmaView, renderAmaGroupDetail } from './ama.js';
 import { renderPastorDetail, renderChurchDetail } from './detail.js';
 import { renderSupportView } from './support.js';
 import { renderAdminView } from './admin.js';
+
+// Keep in sync with CACHE_NAME in sw.js
+const APP_VERSION = 'v10.0.2';
 
 // ── State ────────────────────────────────────────────────────────────────────
 let activeTab = 'pastors';
@@ -22,7 +26,10 @@ const appShell    = document.getElementById('app');
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 async function init() {
   // Auth check — must succeed before anything else renders
-  const authRes = await fetch('/api/auth/session', { cache: 'no-store' }).catch(() => null);
+  const authRes = await fetch('/api/auth/session', {
+    cache: 'no-store',
+    headers: { 'X-App-Version': APP_VERSION },
+  }).catch(() => null);
   if (!authRes || !authRes.ok) {
     showLoginScreen();
     return;
@@ -119,32 +126,26 @@ async function loadDirectoryData() {
 // ── Silent background update ──────────────────────────────────────────────────
 async function checkForUpdates() {
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch('/api/data-version', { signal: controller.signal });
-    clearTimeout(timer);
-    if (!res.ok) return;
-    const { version } = await res.json();
     const stored = await getStoredVersion();
-    if (version !== stored) {
-      const dataRes = await fetch('/api/data', { cache: 'no-store' });
-      if (!dataRes.ok) return;
-      const data = await dataRes.json();
-      await Promise.all([
-        savePastors(data.pastors).catch(() => {}),
-        saveAmaGroups(data.amaGroups).catch(() => {}),
-        saveChurchAddresses(data.churchAddresses).catch(() => {}),
-        saveVersion(data.version).catch(() => {}),
-      ]);
-      pastors   = data.pastors;
-      amaGroups = data.amaGroups;
-      initPastorsView(pastors);
-      buildChurchList(pastors, data.churchAddresses);
-      initAmaView(amaGroups, pastors);
-      if (detailStack.length === 0) renderTab(activeTab);
-    }
+    if (DATA_VERSION === stored) return;
+
+    const dataRes = await fetch('/api/data', { cache: 'no-store' });
+    if (!dataRes.ok) return;
+    const data = await dataRes.json();
+    await Promise.all([
+      savePastors(data.pastors).catch(() => {}),
+      saveAmaGroups(data.amaGroups).catch(() => {}),
+      saveChurchAddresses(data.churchAddresses).catch(() => {}),
+      saveVersion(DATA_VERSION).catch(() => {}),
+    ]);
+    pastors   = data.pastors;
+    amaGroups = data.amaGroups;
+    initPastorsView(pastors);
+    buildChurchList(pastors, data.churchAddresses);
+    initAmaView(amaGroups, pastors);
+    if (detailStack.length === 0) renderTab(activeTab);
   } catch {
-    // Offline or timeout — fail silently
+    // Offline — fail silently
   }
 }
 

@@ -591,6 +591,38 @@ html, body {
 
 .admin-delete-btn:disabled { opacity: 0.5; }
 
+.admin-activity-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.admin-activity-row:last-child { border-bottom: none; }
+
+.admin-activity-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+.admin-activity-avatar-placeholder { background: var(--border); }
+
+.admin-activity-info { flex: 1; min-width: 0; }
+.admin-activity-info .item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.admin-version-badge {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.admin-version-badge.current  { background: #d5f5e3; color: var(--green); }
+.admin-version-badge.outdated { background: var(--amber-bg); color: var(--amber); }
+.admin-version-badge.unknown  { background: var(--bg); color: var(--text-sub); }
+
 /* ── Group actions (AMA) ─────────────────────────────────────────────────── */
 .group-actions {
   display: flex;

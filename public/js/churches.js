@@ -12,7 +12,11 @@ export function buildChurchList(pastors, churchAddresses = {}) {
     });
   });
   allChurches = Array.from(map.values())
-    .map(c => ({ ...c, address: churchAddresses[c.name] || null }))
+    .map(c => ({
+      ...c,
+      address:    churchAddresses[c.name] || null,
+      membership: churchAddresses[c.name]?.membership ?? null,
+    }))
     .sort((a, b) => a.name.localeCompare(b.name));
   return allChurches;
 }
@@ -47,10 +51,14 @@ function renderList(listEl, onSelect) {
   listEl.innerHTML = filtered.map(c => {
     const pastorNames = c.pastors.map(p => p.displayName).join(', ');
     const location = c.address ? `${c.address.city}, ${c.address.state}` : '';
+    const membershipLine = c.membership != null
+      ? `<div class="item-sub">Membership: ${c.membership}</div>`
+      : '';
     return `
       <div class="list-item" data-name="${escHtml(c.name)}">
         <div class="item-name">${escHtml(c.name)}</div>
         <div class="item-sub">${location ? `<span class="item-location">${escHtml(location)}</span> · ` : ''}${escHtml(pastorNames)}</div>
+        ${membershipLine}
       </div>
     `;
   }).join('');
