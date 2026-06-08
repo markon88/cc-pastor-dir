@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pastor-dir-v10.0.2';
+const CACHE_NAME = 'pastor-dir-v10.0.3';
 const ASSETS = [
   '/',
   '/index.html',

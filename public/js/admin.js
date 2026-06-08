@@ -1,5 +1,5 @@
 // Keep in sync with CACHE_NAME in sw.js
-const CURRENT_VERSION = 'v10.0.2';
+const CURRENT_VERSION = 'v10.0.3';
 
 function esc(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
