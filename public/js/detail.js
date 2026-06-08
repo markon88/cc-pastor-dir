@@ -122,11 +122,14 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack) {
       ` : ''}
       <div class="detail-section">
         <div class="detail-label">Pastor${church.pastors.length > 1 ? 's' : ''}</div>
-        ${church.pastors.map(p => `
-          <div class="detail-value pastor-link" data-id="${p.id}" style="cursor:pointer;color:var(--primary);">
-            ${escHtml(p.displayName)}
-          </div>
-        `).join('')}
+        ${church.pastors.length
+          ? church.pastors.map(p => `
+              <div class="detail-value pastor-link" data-id="${p.id}" style="cursor:pointer;color:var(--primary);">
+                ${escHtml(p.displayName)}
+              </div>
+            `).join('')
+          : '<div class="detail-value" style="color:var(--text-secondary)">Vacant</div>'
+        }
       </div>
     </div>
   `;

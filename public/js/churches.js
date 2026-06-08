@@ -4,18 +4,22 @@ let allChurches = [];
 let searchQuery = '';
 
 export function buildChurchList(pastors, churchAddresses = {}) {
-  const map = new Map();
+  // Build pastor lookup by church name
+  const pastorsByChurch = new Map();
   pastors.forEach(p => {
     (p.churches || []).forEach(name => {
-      if (!map.has(name)) map.set(name, { name, pastors: [] });
-      map.get(name).pastors.push(p);
+      if (!pastorsByChurch.has(name)) pastorsByChurch.set(name, []);
+      pastorsByChurch.get(name).push(p);
     });
   });
-  allChurches = Array.from(map.values())
-    .map(c => ({
-      ...c,
-      address:    churchAddresses[c.name] || null,
-      membership: churchAddresses[c.name]?.membership ?? null,
+
+  // Start from the full church list, not just pastor assignments
+  allChurches = Object.keys(churchAddresses)
+    .map(name => ({
+      name,
+      pastors:    pastorsByChurch.get(name) || [],
+      address:    churchAddresses[name] || null,
+      membership: churchAddresses[name]?.membership ?? null,
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
   return allChurches;
@@ -49,7 +53,7 @@ function renderList(listEl, onSelect) {
   }
 
   listEl.innerHTML = filtered.map(c => {
-    const pastorNames = c.pastors.map(p => p.displayName).join(', ');
+    const pastorNames = c.pastors.length ? c.pastors.map(p => p.displayName).join(', ') : 'Vacant';
     const location = c.address ? `${c.address.city}, ${c.address.state}` : '';
     const membershipLine = c.membership != null
       ? `<div class="item-sub">Membership: ${c.membership}</div>`
