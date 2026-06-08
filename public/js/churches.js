@@ -15,12 +15,16 @@ export function buildChurchList(pastors, churchAddresses = {}) {
 
   // Start from the full church list, not just pastor assignments
   allChurches = Object.keys(churchAddresses)
-    .map(name => ({
-      name,
-      pastors:    pastorsByChurch.get(name) || [],
-      address:    churchAddresses[name] || null,
-      membership: churchAddresses[name]?.membership ?? null,
-    }))
+    .map(name => {
+      const a = churchAddresses[name];
+      const address = (a?.street || a?.city) ? a : null;
+      return {
+        name,
+        pastors:    pastorsByChurch.get(name) || [],
+        address,
+        membership: a?.membership ?? null,
+      };
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
   return allChurches;
 }
