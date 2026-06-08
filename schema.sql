@@ -18,18 +18,19 @@ CREATE TABLE IF NOT EXISTS user_activity (
 );
 
 CREATE TABLE IF NOT EXISTS pastors (
-  id            TEXT PRIMARY KEY,
-  last_name     TEXT NOT NULL,
-  first_name    TEXT NOT NULL,
-  display_name  TEXT NOT NULL,
-  email         TEXT,
-  birthday      TEXT,
-  street        TEXT,
-  city          TEXT,
-  state         TEXT,
-  zip           TEXT,
-  primary_phone TEXT,
-  active        INTEGER DEFAULT 1
+  id             TEXT PRIMARY KEY,
+  eadventist_id  TEXT,
+  last_name      TEXT NOT NULL,
+  first_name     TEXT NOT NULL,
+  display_name   TEXT NOT NULL,
+  email          TEXT,
+  birthday       TEXT,
+  street         TEXT,
+  city           TEXT,
+  state          TEXT,
+  zip            TEXT,
+  primary_phone  TEXT,
+  active         INTEGER DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS pastor_phones (
@@ -42,6 +43,9 @@ CREATE TABLE IF NOT EXISTS pastor_phones (
 
 CREATE TABLE IF NOT EXISTS churches (
   name       TEXT PRIMARY KEY,
+  org_id     TEXT,
+  org_code   TEXT,
+  region     TEXT,
   street     TEXT,
   city       TEXT,
   state      TEXT,
@@ -73,3 +77,14 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS sync_log (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  sync_type   TEXT NOT NULL,
+  action      TEXT NOT NULL,
+  entity_name TEXT,
+  details     TEXT,
+  created_at  TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_log_created ON sync_log (created_at DESC);

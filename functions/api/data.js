@@ -12,7 +12,7 @@ export async function onRequestGet({ env }) {
     env.DB.prepare('SELECT pastor_id, number, mobile, confidential FROM pastor_phones'),
     env.DB.prepare('SELECT pastor_id, church_name FROM pastor_churches'),
     env.DB.prepare('SELECT pastor_id, group_id FROM pastor_ama_groups'),
-    env.DB.prepare('SELECT name, street, city, state, zip, membership FROM churches ORDER BY name'),
+    env.DB.prepare('SELECT name, org_code, street, city, state, zip, membership FROM churches ORDER BY name'),
     env.DB.prepare('SELECT id, name, leader_id FROM ama_groups ORDER BY sort_order, name'),
     env.DB.prepare("SELECT value FROM meta WHERE key = 'version'"),
   ]);
@@ -65,6 +65,7 @@ export async function onRequestGet({ env }) {
   const churchAddresses = {};
   for (const c of churchRows) {
     churchAddresses[c.name] = {
+      ...(c.org_code != null ? { orgCode: c.org_code } : {}),
       street: c.street,
       city:   c.city,
       state:  c.state,

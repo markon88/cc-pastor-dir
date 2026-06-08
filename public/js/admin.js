@@ -46,6 +46,12 @@ export function renderAdminView(container) {
         <div class="support-section-title">Explicitly allowed emails</div>
         <div id="admin-list"><p class="support-section-desc">Loading…</p></div>
       </div>
+
+      <div class="support-section">
+        <div class="support-section-title">eAdventist Sync Log</div>
+        <p class="support-section-desc">Runs automatically Tuesday & Friday at 4 AM ET. Items marked <strong>insert</strong> or <strong>unmatched</strong> need review.</p>
+        <div id="admin-sync-log"><p class="support-section-desc">Loading…</p></div>
+      </div>
     </div>
   `;
 
@@ -56,6 +62,52 @@ export function renderAdminView(container) {
 
   loadActivity();
   loadAllowedEmails();
+  loadSyncLog();
+}
+
+async function loadSyncLog() {
+  const el = document.getElementById('admin-sync-log');
+  if (!el) return;
+
+  const res = await fetch('/api/admin/sync-log');
+  if (!res.ok) {
+    el.innerHTML = '<p class="support-section-desc" style="color:var(--red)">Failed to load sync log.</p>';
+    return;
+  }
+
+  const entries = await res.json();
+  if (!entries.length) {
+    el.innerHTML = '<p class="support-section-desc">No sync activity yet.</p>';
+    return;
+  }
+
+  const actionClass = a => {
+    if (a === 'insert' || a === 'unmatched') return 'admin-sync-badge-warn';
+    if (a === 'error')                        return 'admin-sync-badge-error';
+    return 'admin-sync-badge-ok';
+  };
+
+  el.innerHTML = entries.map(e => {
+    let details = '';
+    try {
+      const d = JSON.parse(e.details ?? '{}');
+      if (d.note)      details = d.note;
+      else if (d.error) details = d.error;
+      else if (e.action === 'sync_complete') {
+        details = `${d.processed} processed · ${d.updated ?? d.inserted ?? 0} changed`;
+        if (d.unmatched) details += ` · ${d.unmatched} unmatched`;
+      }
+    } catch {}
+    return `
+      <div class="admin-activity-row">
+        <div class="admin-activity-info">
+          <div class="item-name">${esc(e.entity_name ?? e.sync_type)}</div>
+          ${details ? `<div class="item-sub">${esc(details)}</div>` : ''}
+          <div class="item-sub">${esc(timeAgo(e.created_at))}</div>
+        </div>
+        <span class="admin-version-badge ${actionClass(e.action)}">${esc(e.action)}</span>
+      </div>`;
+  }).join('');
 }
 
 async function loadActivity() {
