@@ -103,8 +103,8 @@ async function loadDirectoryData() {
       getChurchAddresses(),
       getAmaSchedule(),
     ]);
-    if (stored?.length > 0 && storedAma && storedChurches) {
-      return { pastors: stored, amaGroups: storedAma, churchAddresses: storedChurches, amaSchedule: storedSchedule ?? [] };
+    if (stored?.length > 0 && storedAma && storedChurches && storedSchedule !== null) {
+      return { pastors: stored, amaGroups: storedAma, churchAddresses: storedChurches, amaSchedule: storedSchedule };
     }
   } catch {
     // Fall through to API fetch
