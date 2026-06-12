@@ -12,7 +12,7 @@ export function renderAmaView(container, onSelectGroup) {
   if (allGroups.length === 0) {
     container.innerHTML = `
       <div class="list-header">
-        <div class="view-title">AMA Groups</div>
+        <div class="view-title">AMA</div>
       </div>
       <div class="empty-state" style="margin-top:48px;">
         <p>AMA group assignments coming soon.</p>
@@ -23,21 +23,33 @@ export function renderAmaView(container, onSelectGroup) {
 
   container.innerHTML = `
     <div class="list-header">
-      <div class="view-title">AMA Groups</div>
+      <div class="view-title">AMA</div>
+      <div class="sort-toggle">
+        <button class="sort-btn active" data-panel="groups">Groups</button>
+        <button class="sort-btn" data-panel="schedule">Schedule</button>
+      </div>
     </div>
-    <div id="ama-meetings-slot"></div>
-    <div id="ama-list" class="item-list"></div>
+    <div id="ama-groups-panel">
+      <div id="ama-list" class="item-list"></div>
+    </div>
+    <div id="ama-schedule-panel" class="hidden">
+      <div id="ama-meetings-slot"></div>
+    </div>
   `;
 
-  const slot = container.querySelector('#ama-meetings-slot');
-  renderAmaMeetings(slot);
-  if (slot.hasChildNodes()) {
-    const divider = document.createElement('div');
-    divider.className = 'section-divider';
-    divider.textContent = 'Groups';
-    slot.after(divider);
-  }
+  // Tab switching
+  const tabs = container.querySelectorAll('.sort-btn[data-panel]');
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const showSchedule = btn.dataset.panel === 'schedule';
+      container.querySelector('#ama-groups-panel').classList.toggle('hidden', showSchedule);
+      container.querySelector('#ama-schedule-panel').classList.toggle('hidden', !showSchedule);
+    });
+  });
 
+  // Populate groups
   const listEl = container.querySelector('#ama-list');
   listEl.innerHTML = allGroups.map(g => {
     const count = g.pastorIds.length;
@@ -56,6 +68,9 @@ export function renderAmaView(container, onSelectGroup) {
   listEl.querySelectorAll('.list-item').forEach(el => {
     el.addEventListener('click', () => onSelectGroup(el.dataset.id));
   });
+
+  // Populate schedule (rendered into hidden panel — ready when user taps)
+  renderAmaMeetings(container.querySelector('#ama-meetings-slot'));
 }
 
 export function renderAmaGroupDetail(container, groupId, onSelectPastor, onBack) {
