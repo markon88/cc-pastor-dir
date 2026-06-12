@@ -94,6 +94,52 @@ function downloadIcs(meeting) {
   URL.revokeObjectURL(a.href);
 }
 
+// ── Group schedule helpers ────────────────────────────────────────────────────
+
+export function getMeetingsForGroup(groupName) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return SCHEDULE
+    .filter(m => m.group === groupName && parseLocalDate(m.date) >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+export function downloadGroupIcs(groupName, meetings) {
+  const events = meetings.map(m => {
+    const dt = m.date.replace(/-/g, '');
+    const next = parseLocalDate(m.date);
+    next.setDate(next.getDate() + 1);
+    const dtEnd = [
+      next.getFullYear(),
+      String(next.getMonth() + 1).padStart(2, '0'),
+      String(next.getDate()).padStart(2, '0'),
+    ].join('');
+    const required = REQUIRED_TYPES.has(m.type) ? ' (Required)' : '';
+    return [
+      'BEGIN:VEVENT',
+      `UID:${m.id}@carolinasda.org`,
+      `DTSTART;VALUE=DATE:${dt}`,
+      `DTEND;VALUE=DATE:${dtEnd}`,
+      `SUMMARY:AMA Meeting – ${m.group}${required}`,
+      `DESCRIPTION:${TYPE_LABELS[m.type]} AMA Meeting`,
+      'END:VEVENT',
+    ].join('\r\n');
+  });
+
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//CC Pastors//AMA Schedule//EN',
+    ...events,
+    'END:VCALENDAR',
+  ].join('\r\n');
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+  a.download = `AMA-${groupName.replace(/\s+/g, '-')}-schedule.ics`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 // ── Banner notification ───────────────────────────────────────────────────────
 
 export function checkAmaBanner(bannersEl, currentUser, pastors) {

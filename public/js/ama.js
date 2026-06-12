@@ -1,4 +1,4 @@
-import { renderAmaMeetings } from './ama-meetings.js';
+import { renderAmaMeetings, getMeetingsForGroup, downloadGroupIcs } from './ama-meetings.js';
 
 let allGroups = [];
 let allPastors = [];
@@ -83,10 +83,28 @@ export function renderAmaGroupDetail(container, groupId, onSelectPastor, onBack)
     .sort((a, b) => a.lastName.localeCompare(b.lastName));
 
   const emails = pastors.filter(p => p.email).map(p => p.email);
-  const mobiles = pastors
-    .map(p => p.phones.find(ph => ph.mobile))
-    .filter(Boolean)
-    .map(ph => ph.number);
+
+  const meetings = getMeetingsForGroup(group.name);
+
+  const MEETING_TYPE_LABELS = { ministerial: 'Ministerial', administration: 'Administration', holiday: 'Holiday Meal', local: 'Local' };
+  const MEETING_REQUIRED_TYPES = new Set(['ministerial', 'administration']);
+
+  const meetingRows = meetings.length
+    ? meetings.map(m => {
+        const required = MEETING_REQUIRED_TYPES.has(m.type);
+        const [y, mo, d] = m.date.split('-').map(Number);
+        const dateStr = new Date(y, mo - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return `
+          <div class="meeting-item">
+            <div class="meeting-date">${escHtml(dateStr)}</div>
+            <div class="meeting-info">
+              <span class="meeting-badge meeting-badge-${m.type}">${escHtml(MEETING_TYPE_LABELS[m.type])}${required ? ' ★' : ''}</span>
+            </div>
+            <button class="meeting-cal-btn" data-id="${escHtml(m.id)}" aria-label="Add to calendar">+ Cal</button>
+          </div>
+        `;
+      }).join('')
+    : '<div style="padding:24px 16px;color:var(--text-sub);text-align:center;">No upcoming meetings scheduled</div>';
 
   container.innerHTML = `
     <div class="detail-header">
@@ -96,23 +114,66 @@ export function renderAmaGroupDetail(container, groupId, onSelectPastor, onBack)
     <div class="group-actions">
       ${emails.length ? `<a href="mailto:${emails.join(',')}" class="action-btn action-email">Group Email</a>` : ''}
     </div>
-    <div class="item-list" id="ama-pastor-list">
-      ${pastors.map(p => `
-        <div class="list-item" data-id="${p.id}">
-          <div class="item-name">
-            ${escHtml(p.displayName)}
-            ${p.id === group.leaderId ? '<span class="tag" style="margin-left:6px">Leader</span>' : ''}
+    <div class="sort-toggle" style="padding:10px 16px;border-bottom:1px solid var(--border);">
+      <button class="sort-btn active" data-tab="members">Members</button>
+      <button class="sort-btn" data-tab="schedule">Schedule</button>
+    </div>
+    <div id="group-members-panel">
+      <div class="item-list" id="ama-pastor-list">
+        ${pastors.map(p => `
+          <div class="list-item" data-id="${p.id}">
+            <div class="item-name">
+              ${escHtml(p.displayName)}
+              ${p.id === group.leaderId ? '<span class="tag" style="margin-left:6px">Leader</span>' : ''}
+            </div>
+            <div class="item-sub">${escHtml((p.churches || [])[0] || '')}</div>
           </div>
-          <div class="item-sub">${escHtml((p.churches || [])[0] || '')}</div>
+        `).join('')}
+      </div>
+    </div>
+    <div id="group-schedule-panel" class="hidden">
+      ${meetings.length ? `
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+          <button id="add-all-cal-btn" class="action-btn action-email" style="width:100%;">+ Add All ${meetings.length} Meeting${meetings.length !== 1 ? 's' : ''} to Calendar</button>
         </div>
-      `).join('')}
+      ` : ''}
+      <div class="meetings-section">
+        <div class="meetings-list">${meetingRows}</div>
+      </div>
     </div>
   `;
 
   container.querySelector('#ama-back').addEventListener('click', onBack);
+
   container.querySelectorAll('#ama-pastor-list .list-item').forEach(el => {
     el.addEventListener('click', () => onSelectPastor(el.dataset.id));
   });
+
+  // Tab switching
+  const tabs = container.querySelectorAll('.sort-btn[data-tab]');
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const showSchedule = btn.dataset.tab === 'schedule';
+      container.querySelector('#group-members-panel').classList.toggle('hidden', showSchedule);
+      container.querySelector('#group-schedule-panel').classList.toggle('hidden', !showSchedule);
+    });
+  });
+
+  // Per-meeting calendar buttons
+  container.querySelectorAll('.meeting-cal-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const m = meetings.find(x => x.id === btn.dataset.id);
+      if (m) downloadGroupIcs(group.name, [m]);
+    });
+  });
+
+  // Add all to calendar
+  const addAllBtn = container.querySelector('#add-all-cal-btn');
+  if (addAllBtn) {
+    addAllBtn.addEventListener('click', () => downloadGroupIcs(group.name, meetings));
+  }
 }
 
 function escHtml(str) {
