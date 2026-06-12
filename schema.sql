@@ -89,3 +89,10 @@ CREATE TABLE IF NOT EXISTS sync_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_sync_log_created ON sync_log (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS ama_meetings (
+  id         TEXT PRIMARY KEY,
+  group_name TEXT NOT NULL,
+  date       TEXT NOT NULL,
+  type       TEXT NOT NULL
+);

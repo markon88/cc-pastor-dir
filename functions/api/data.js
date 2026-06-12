@@ -1,5 +1,3 @@
-import { SCHEDULE } from '../_lib/ama-schedule-data.js';
-
 export async function onRequestGet({ env }) {
   const [
     { results: pastorRows },
@@ -9,6 +7,7 @@ export async function onRequestGet({ env }) {
     { results: churchRows },
     { results: groupRows },
     { results: versionRows },
+    { results: meetingRows },
   ] = await env.DB.batch([
     env.DB.prepare('SELECT id, last_name, first_name, display_name, email, birthday, street, city, state, zip, primary_phone FROM pastors WHERE active = 1 ORDER BY last_name, first_name'),
     env.DB.prepare('SELECT pastor_id, number, mobile, confidential FROM pastor_phones'),
@@ -17,6 +16,7 @@ export async function onRequestGet({ env }) {
     env.DB.prepare('SELECT name, org_code, street, city, state, zip, membership FROM churches ORDER BY name'),
     env.DB.prepare('SELECT id, name, leader_id FROM ama_groups ORDER BY sort_order, name'),
     env.DB.prepare("SELECT value FROM meta WHERE key = 'version'"),
+    env.DB.prepare('SELECT id, group_name, date, type FROM ama_meetings ORDER BY date'),
   ]);
 
   // Build lookup maps from junction/detail tables
@@ -81,7 +81,7 @@ export async function onRequestGet({ env }) {
     pastors,
     amaGroups,
     churchAddresses,
-    amaSchedule:     SCHEDULE,
+    amaSchedule:     meetingRows.map(m => ({ id: m.id, group: m.group_name, date: m.date, type: m.type })),
   }), {
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
