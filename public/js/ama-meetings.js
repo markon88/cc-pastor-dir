@@ -8,13 +8,12 @@ export const AMA_MEETINGS_ENABLED = true;
 const SCHEDULE = [
   // ── Blue Ridge ────────────────────────────────────────────────────────────
   { id: 'br-0226', group: 'Blue Ridge', date: '2026-02-26', type: 'local' },
-  { id: 'br-0310', group: 'Blue Ridge', date: '2026-03-10', type: 'administration' }, // verify type
+  { id: 'br-0304', group: 'Blue Ridge', date: '2026-03-04', type: 'ministerial' },
   { id: 'br-0423', group: 'Blue Ridge', date: '2026-04-23', type: 'local' },
   { id: 'br-0506', group: 'Blue Ridge', date: '2026-05-06', type: 'administration' },
-  { id: 'br-0805', group: 'Blue Ridge', date: '2026-08-05', type: 'ministerial' },
+  { id: 'br-0806', group: 'Blue Ridge', date: '2026-08-06', type: 'ministerial' },
   { id: 'br-0924', group: 'Blue Ridge', date: '2026-09-24', type: 'local' },
   { id: 'br-1022', group: 'Blue Ridge', date: '2026-10-22', type: 'local' },
-  { id: 'br-1119', group: 'Blue Ridge', date: '2026-11-19', type: 'local' },
 
   // ── North Central ─────────────────────────────────────────────────────────
   { id: 'nc-0218', group: 'North Central', date: '2026-02-18', type: 'ministerial' },
@@ -50,7 +49,7 @@ const SCHEDULE = [
   { id: 'up-0226', group: 'Upstate', date: '2026-02-26', type: 'administration' },
   { id: 'up-0402', group: 'Upstate', date: '2026-04-02', type: 'local' },
   { id: 'up-0507', group: 'Upstate', date: '2026-05-07', type: 'ministerial' },
-  { id: 'up-0617', group: 'Upstate', date: '2026-06-17', type: 'local' },
+  { id: 'pa-0617', group: 'Palmetto', date: '2026-06-17', type: 'local' },
   { id: 'up-0806', group: 'Upstate', date: '2026-08-06', type: 'local' },
   { id: 'up-1008', group: 'Upstate', date: '2026-10-08', type: 'ministerial' },
   { id: 'up-1105', group: 'Upstate', date: '2026-11-05', type: 'local' },
