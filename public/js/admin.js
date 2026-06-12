@@ -1,5 +1,4 @@
-// Keep in sync with CACHE_NAME in sw.js
-const CURRENT_VERSION = 'v10.0.3';
+import { VERSION as CURRENT_VERSION } from './version.js';
 
 function esc(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
