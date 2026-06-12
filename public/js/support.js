@@ -89,8 +89,11 @@ async function checkForAppUpdate(e) {
 
   const reg = await navigator.serviceWorker.getRegistration('/').catch(() => null);
   if (!reg) {
-    btn.textContent = 'No service worker found';
-    btn.disabled = false;
+    // No registration — unregister any stale workers and reload fresh
+    await navigator.serviceWorker.getRegistrations()
+      .then(regs => Promise.all(regs.map(r => r.unregister())))
+      .catch(() => {});
+    window.location.reload();
     return;
   }
 
@@ -98,16 +101,23 @@ async function checkForAppUpdate(e) {
   const onUpdateFound = () => { updateFound = true; };
   reg.addEventListener('updatefound', onUpdateFound);
 
+  let updateError = false;
   try {
     await reg.update();
   } catch {
-    reg.removeEventListener('updatefound', onUpdateFound);
-    btn.textContent = 'Offline — check your connection';
-    btn.disabled = false;
-    return;
+    updateError = true;
   }
 
   reg.removeEventListener('updatefound', onUpdateFound);
+
+  if (updateError) {
+    // SW registration is in a bad state — unregister it so the browser
+    // does a clean install on next load, picking up the new version.
+    btn.textContent = 'Resetting… reloading';
+    await reg.unregister().catch(() => {});
+    window.location.reload();
+    return;
+  }
 
   if (updateFound) {
     // New SW is installing — controllerchange in app.js will reload when it activates

@@ -1,5 +1,6 @@
-import { VERSION } from '/js/version.js';
-const CACHE_NAME = `pastor-dir-${VERSION}`;
+// Bump CACHE_NAME with every app version bump — changing this string is what
+// tells the browser a new service worker exists and triggers an update install.
+const CACHE_NAME = 'pastor-dir-v10.1.0';
 const ASSETS = [
   '/',
   '/index.html',
