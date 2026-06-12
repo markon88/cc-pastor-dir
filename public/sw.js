@@ -1,8 +1,10 @@
-const CACHE_NAME = 'pastor-dir-v10.0.3';
+import { VERSION } from '/js/version.js';
+const CACHE_NAME = `pastor-dir-${VERSION}`;
 const ASSETS = [
   '/',
   '/index.html',
   '/css/app.css',
+  '/js/version.js',
   '/js/app.js',
   '/js/data-version.js',
   '/js/db.js',

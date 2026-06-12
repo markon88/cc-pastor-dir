@@ -1,5 +1,6 @@
 import { savePastors, getPastors, getStoredVersion, saveVersion, saveAmaGroups, getAmaGroups, saveChurchAddresses, getChurchAddresses } from './db.js';
 import { DATA_VERSION } from './data-version.js';
+import { VERSION as APP_VERSION } from './version.js';
 import { initPastorsView, renderPastorsView } from './pastors.js';
 import { buildChurchList, renderChurchesView, getChurchByName } from './churches.js';
 import { initAmaView, renderAmaView, renderAmaGroupDetail } from './ama.js';
@@ -7,8 +8,6 @@ import { renderPastorDetail, renderChurchDetail } from './detail.js';
 import { renderSupportView } from './support.js';
 import { renderAdminView } from './admin.js';
 
-// Keep in sync with CACHE_NAME in sw.js
-const APP_VERSION = 'v10.0.2';
 
 // ── State ────────────────────────────────────────────────────────────────────
 let activeTab = 'pastors';
@@ -46,7 +45,7 @@ async function init() {
   // Register service worker and auto-reload when a new version takes over
   if ('serviceWorker' in navigator) {
     const hadController = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/sw.js', { type: 'module' }).catch(() => {});
     let reloading = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (hadController && !reloading) {
