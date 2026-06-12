@@ -195,14 +195,61 @@ async function loadAllowedEmails() {
   }
 
   list.innerHTML = emails.map(e => `
-    <div class="admin-email-row">
+    <div class="admin-email-row" data-email="${esc(e.email)}">
       <div class="admin-email-info">
         <div class="item-name">${esc(e.email)}</div>
-        <div class="item-sub">Added by ${esc(e.added_by)}</div>
+        <div class="item-sub">
+          Added by ${esc(e.added_by)}
+          ${e.directory_email
+            ? ` · Maps to <strong>${esc(e.directory_email)}</strong>`
+            : ' · <span class="admin-no-mapping">No directory mapping</span>'}
+        </div>
       </div>
-      <button class="admin-delete-btn" data-email="${esc(e.email)}">Remove</button>
+      <div class="admin-email-actions">
+        <button class="admin-map-btn" data-email="${esc(e.email)}" data-current="${esc(e.directory_email ?? '')}">Map</button>
+        <button class="admin-delete-btn" data-email="${esc(e.email)}">Remove</button>
+      </div>
+    </div>
+    <div class="admin-map-form hidden" id="map-form-${esc(e.email)}">
+      <input type="email" class="search-input admin-map-input" placeholder="pastor@carolinasda.org" value="${esc(e.directory_email ?? '')}">
+      <div class="admin-map-row-btns">
+        <button class="support-btn admin-map-save" data-email="${esc(e.email)}" style="flex:1">Save</button>
+        <button class="admin-map-cancel support-btn" data-email="${esc(e.email)}" style="flex:1;background:var(--text-sub)">Cancel</button>
+      </div>
     </div>
   `).join('');
+
+  list.querySelectorAll('.admin-map-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const form = document.getElementById(`map-form-${btn.dataset.email}`);
+      form.classList.toggle('hidden');
+    });
+  });
+
+  list.querySelectorAll('.admin-map-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById(`map-form-${btn.dataset.email}`).classList.add('hidden');
+    });
+  });
+
+  list.querySelectorAll('.admin-map-save').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const form = document.getElementById(`map-form-${btn.dataset.email}`);
+      const directoryEmail = form.querySelector('.admin-map-input').value.trim();
+      btn.disabled = true;
+      const res = await fetch('/api/admin/allowed-emails', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: btn.dataset.email, directoryEmail: directoryEmail || null }),
+      });
+      if (res.ok) {
+        loadAllowedEmails();
+      } else {
+        btn.disabled = false;
+        alert('Failed to save mapping — please try again.');
+      }
+    });
+  });
 
   list.querySelectorAll('.admin-delete-btn').forEach(btn => {
     btn.addEventListener('click', async () => {

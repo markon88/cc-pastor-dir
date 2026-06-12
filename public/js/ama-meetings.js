@@ -156,7 +156,8 @@ function downloadIcs(meeting) {
 export function checkAmaBanner(bannersEl, currentUser, pastors) {
   if (!AMA_MEETINGS_ENABLED || !bannersEl || !currentUser?.email) return;
 
-  const pastor = pastors.find(p => p.email?.toLowerCase() === currentUser.email.toLowerCase());
+  const lookupEmail = (currentUser.directoryEmail ?? currentUser.email).toLowerCase();
+  const pastor = pastors.find(p => p.email?.toLowerCase() === lookupEmail);
   if (!pastor?.amaGroup?.length) return;
 
   const myGroups = new Set(pastor.amaGroup);

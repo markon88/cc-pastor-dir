@@ -684,6 +684,36 @@ html, body {
 
 .admin-delete-btn:disabled { opacity: 0.5; }
 
+.admin-email-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.admin-map-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.admin-no-mapping { color: var(--text-sub); font-style: italic; }
+
+.admin-map-form {
+  padding: 8px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-map-form.hidden { display: none; }
+
+.admin-map-row-btns { display: flex; gap: 8px; }
+.admin-map-row-btns .support-btn { font-size: 13px; padding: 9px 4px; }
+
 .admin-activity-row {
   display: flex;
   align-items: center;

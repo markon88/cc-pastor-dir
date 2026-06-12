@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS allowed_emails (
-  email      TEXT PRIMARY KEY,
-  added_by   TEXT,
-  created_at TEXT DEFAULT (datetime('now'))
+  email           TEXT PRIMARY KEY,
+  added_by        TEXT,
+  created_at      TEXT DEFAULT (datetime('now')),
+  directory_email TEXT  -- maps login email to a pastor record email when they differ
 );
 
 CREATE TABLE IF NOT EXISTS user_activity (

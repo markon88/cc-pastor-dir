@@ -14,7 +14,7 @@ export async function onRequest({ request, env, data }) {
 
   if (method === 'GET') {
     const { results } = await env.DB.prepare(
-      'SELECT email, added_by, created_at FROM allowed_emails ORDER BY created_at DESC'
+      'SELECT email, added_by, created_at, directory_email FROM allowed_emails ORDER BY created_at DESC'
     ).all();
     return json(results);
   }
@@ -26,6 +26,17 @@ export async function onRequest({ request, env, data }) {
     }
     await env.DB.prepare('INSERT OR REPLACE INTO allowed_emails (email, added_by) VALUES (?, ?)')
       .bind(email.toLowerCase().trim(), user.email).run();
+    return json({ ok: true });
+  }
+
+  if (method === 'PATCH') {
+    const { email, directoryEmail } = await request.json().catch(() => ({}));
+    if (!email) {
+      return new Response(JSON.stringify({ error: 'Missing email' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    }
+    const mapped = directoryEmail?.toLowerCase().trim() || null;
+    await env.DB.prepare('UPDATE allowed_emails SET directory_email = ? WHERE email = ?')
+      .bind(mapped, email.toLowerCase()).run();
     return json({ ok: true });
   }
 

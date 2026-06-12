@@ -48,10 +48,15 @@ export async function onRequestGet({ request, env }) {
     } catch {}
   }
 
+  const mapping = env.DB
+    ? await env.DB.prepare('SELECT directory_email FROM allowed_emails WHERE email = ?').bind(user.email).first()
+    : null;
+
   return new Response(JSON.stringify({
-    email:   user.email,
-    name:    user.name,
-    picture: user.picture,
-    isAdmin: isAdmin(user.email, env),
+    email:          user.email,
+    name:           user.name,
+    picture:        user.picture,
+    isAdmin:        isAdmin(user.email, env),
+    directoryEmail: mapping?.directory_email ?? null,
   }), { headers });
 }
