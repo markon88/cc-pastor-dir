@@ -1,70 +1,10 @@
 // ── Feature flag — set to false to disable the entire module ─────────────────
 export const AMA_MEETINGS_ENABLED = true;
 
-// Schedule data read from the 2026 AMA Schedule image.
-// VERIFY: dates/types against the official schedule before publishing.
+// Schedule data lives in ama-schedule-data.js (gitignored — not committed to the repo).
 // Group names must match ama_groups.name values in D1.
 // Types: 'local' | 'ministerial' | 'administration' | 'holiday'
-const SCHEDULE = [
-  // ── Blue Ridge ────────────────────────────────────────────────────────────
-  { id: 'br-0226', group: 'Blue Ridge', date: '2026-02-26', type: 'local' },
-  { id: 'br-0304', group: 'Blue Ridge', date: '2026-03-04', type: 'ministerial' },
-  { id: 'br-0423', group: 'Blue Ridge', date: '2026-04-23', type: 'local' },
-  { id: 'br-0506', group: 'Blue Ridge', date: '2026-05-06', type: 'administration' },
-  { id: 'br-0806', group: 'Blue Ridge', date: '2026-08-06', type: 'ministerial' },
-  { id: 'br-0924', group: 'Blue Ridge', date: '2026-09-24', type: 'local' },
-  { id: 'br-1022', group: 'Blue Ridge', date: '2026-10-22', type: 'local' },
-
-  // ── North Central ─────────────────────────────────────────────────────────
-  { id: 'nc-0218', group: 'North Central', date: '2026-02-18', type: 'ministerial' },
-  { id: 'nc-0310', group: 'North Central', date: '2026-03-10', type: 'local' },
-  { id: 'nc-0430', group: 'North Central', date: '2026-04-30', type: 'administration' },
-  { id: 'nc-0609', group: 'North Central', date: '2026-06-09', type: 'local' },
-  { id: 'nc-0811', group: 'North Central', date: '2026-08-11', type: 'local' },
-  { id: 'nc-0903', group: 'North Central', date: '2026-09-03', type: 'ministerial' },
-  { id: 'nc-1013', group: 'North Central', date: '2026-10-13', type: 'local' },
-  { id: 'nc-1110', group: 'North Central', date: '2026-11-10', type: 'local' },
-
-  // ── Central Piedmont ────────────────────────────────────────────────────────
-  { id: 'np-0204', group: 'Central Piedmont', date: '2026-02-04', type: 'ministerial' },
-  { id: 'cp-0305', group: 'Central Piedmont', date: '2026-03-05', type: 'administration' },
-  { id: 'np-0402', group: 'Central Piedmont', date: '2026-04-02', type: 'administration' },
-  { id: 'np-0610', group: 'Central Piedmont', date: '2026-06-10', type: 'local' },
-  { id: 'np-0826', group: 'Central Piedmont', date: '2026-08-26', type: 'ministerial' },
-  { id: 'np-0909', group: 'Central Piedmont', date: '2026-09-09', type: 'local' },
-  { id: 'np-1014', group: 'Central Piedmont', date: '2026-10-14', type: 'local' },
-  { id: 'np-1111', group: 'Central Piedmont', date: '2026-11-11', type: 'local' },
-
-  // ── Eastern Carolina ──────────────────────────────────────────────────────
-  { id: 'ec-0203', group: 'Eastern Carolina', date: '2026-02-03', type: 'local' },
-  { id: 'ec-0407', group: 'Eastern Carolina', date: '2026-04-07', type: 'local' },
-  { id: 'ec-0520', group: 'Eastern Carolina', date: '2026-05-20', type: 'ministerial' },
-  { id: 'ec-0827', group: 'Eastern Carolina', date: '2026-08-27', type: 'ministerial' },
-  { id: 'ec-0915', group: 'Eastern Carolina', date: '2026-09-15', type: 'local' },
-  { id: 'ec-1006', group: 'Eastern Carolina', date: '2026-10-06', type: 'local' },
-  { id: 'ec-1103', group: 'Eastern Carolina', date: '2026-11-03', type: 'local' },
-  { id: 'ec-1129', group: 'Eastern Carolina', date: '2026-11-29', type: 'holiday' },
-
-  // ── Upstate ───────────────────────────────────────────────────────────────
-  { id: 'up-0226', group: 'Upstate', date: '2026-02-26', type: 'administration' },
-  { id: 'up-0402', group: 'Upstate', date: '2026-04-02', type: 'local' },
-  { id: 'up-0507', group: 'Upstate', date: '2026-05-07', type: 'ministerial' },
-  { id: 'up-0806', group: 'Upstate', date: '2026-08-06', type: 'local' },
-  { id: 'up-0903', group: 'Upstate', date: '2026-09-03', type: 'local' },
-  { id: 'up-1022', group: 'Upstate', date: '2026-10-22', type: 'ministerial' },
-  { id: 'up-1105', group: 'Upstate', date: '2026-11-05', type: 'local' },
-
-  // ── Palmetto ──────────────────────────────────────────────────────────────
-  { id: 'pa-0211', group: 'Palmetto', date: '2026-02-11', type: 'ministerial' },
-  { id: 'pa-0318', group: 'Palmetto', date: '2026-03-18', type: 'local' },
-  { id: 'pa-0423', group: 'Palmetto', date: '2026-04-23', type: 'administration' },
-  { id: 'pa-0617', group: 'Palmetto', date: '2026-06-17', type: 'local' },
-  { id: 'pa-0819', group: 'Palmetto', date: '2026-08-19', type: 'local' },
-  { id: 'pa-0916', group: 'Palmetto', date: '2026-09-16', type: 'local' },
-  { id: 'pa-1008', group: 'Palmetto', date: '2026-10-08', type: 'ministerial' },
-  { id: 'pa-1118', group: 'Palmetto', date: '2026-11-18', type: 'local' },
-  { id: 'pa-1214', group: 'Palmetto', date: '2026-12-14', type: 'holiday' },
-];
+import { SCHEDULE } from './ama-schedule-data.js';
 
 const TYPE_LABELS = {
   ministerial:    'Ministerial',
