@@ -7,7 +7,6 @@ const ASSETS = [
   '/js/version.js',
   '/js/app.js',
   '/js/ama-meetings.js',
-  '/js/ama-schedule-data.js',
   '/js/data-version.js',
   '/js/db.js',
   '/js/search.js',

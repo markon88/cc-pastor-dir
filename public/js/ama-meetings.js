@@ -1,10 +1,11 @@
 // ── Feature flag — set to false to disable the entire module ─────────────────
 export const AMA_MEETINGS_ENABLED = true;
 
-// Schedule data lives in ama-schedule-data.js (gitignored — not committed to the repo).
+// Schedule data is served via /api/data (auth-protected) and passed in via initSchedule().
 // Group names must match ama_groups.name values in D1.
 // Types: 'local' | 'ministerial' | 'administration' | 'holiday'
-import { SCHEDULE } from './ama-schedule-data.js';
+let SCHEDULE = [];
+export function initSchedule(data) { SCHEDULE = data ?? []; }
 
 const TYPE_LABELS = {
   ministerial:    'Ministerial',

@@ -1,4 +1,4 @@
-import { savePastors, getPastors, getStoredVersion, saveVersion, saveAmaGroups, getAmaGroups, saveChurchAddresses, getChurchAddresses } from './db.js';
+import { savePastors, getPastors, getStoredVersion, saveVersion, saveAmaGroups, getAmaGroups, saveChurchAddresses, getChurchAddresses, saveAmaSchedule, getAmaSchedule } from './db.js';
 import { DATA_VERSION } from './data-version.js';
 import { VERSION as APP_VERSION } from './version.js';
 import { initPastorsView, renderPastorsView } from './pastors.js';
@@ -7,7 +7,7 @@ import { initAmaView, renderAmaView, renderAmaGroupDetail } from './ama.js';
 import { renderPastorDetail, renderChurchDetail } from './detail.js';
 import { renderSupportView } from './support.js';
 import { renderAdminView } from './admin.js';
-import { checkAmaBanner } from './ama-meetings.js';
+import { checkAmaBanner, initSchedule } from './ama-meetings.js';
 
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -67,6 +67,7 @@ async function init() {
   pastors   = data.pastors;
   amaGroups = data.amaGroups;
 
+  initSchedule(data.amaSchedule);
   checkAmaBanner(document.getElementById('banners'), currentUser, pastors);
 
   initPastorsView(pastors);
@@ -96,13 +97,14 @@ function showLoginScreen() {
 async function loadDirectoryData() {
   // Try IndexedDB first — works offline after first authenticated load
   try {
-    const [stored, storedAma, storedChurches] = await Promise.all([
+    const [stored, storedAma, storedChurches, storedSchedule] = await Promise.all([
       getPastors(),
       getAmaGroups(),
       getChurchAddresses(),
+      getAmaSchedule(),
     ]);
     if (stored?.length > 0 && storedAma && storedChurches) {
-      return { pastors: stored, amaGroups: storedAma, churchAddresses: storedChurches };
+      return { pastors: stored, amaGroups: storedAma, churchAddresses: storedChurches, amaSchedule: storedSchedule ?? [] };
     }
   } catch {
     // Fall through to API fetch
@@ -117,6 +119,7 @@ async function loadDirectoryData() {
       savePastors(data.pastors).catch(() => {}),
       saveAmaGroups(data.amaGroups).catch(() => {}),
       saveChurchAddresses(data.churchAddresses).catch(() => {}),
+      saveAmaSchedule(data.amaSchedule ?? []).catch(() => {}),
       saveVersion(data.version).catch(() => {}),
     ]);
     return data;

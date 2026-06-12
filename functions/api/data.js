@@ -1,3 +1,5 @@
+import { SCHEDULE } from '../_lib/ama-schedule-data.js';
+
 export async function onRequestGet({ env }) {
   const [
     { results: pastorRows },
@@ -79,6 +81,7 @@ export async function onRequestGet({ env }) {
     pastors,
     amaGroups,
     churchAddresses,
+    amaSchedule:     SCHEDULE,
   }), {
     headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
