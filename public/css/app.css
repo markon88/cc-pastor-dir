@@ -75,6 +75,12 @@ html, body {
   border-bottom: 1px solid #f1948a;
 }
 
+.banner-ama {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-bottom: 1px solid #aed6f1;
+}
+
 .banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
 .banner-btn {
@@ -446,6 +452,93 @@ html, body {
 }
 
 .support-btn:active { opacity: 0.75; }
+
+/* ── AMA Meetings ─────────────────────────────────────────────────────────── */
+.section-divider {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-sub);
+  padding: 8px 16px 4px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.meetings-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.meetings-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-sub);
+  padding: 10px 16px 4px;
+}
+
+.meeting-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  min-height: 52px;
+}
+
+.meeting-item:last-child { border-bottom: none; }
+
+.meeting-date {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+  min-width: 52px;
+  flex-shrink: 0;
+}
+
+.meeting-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.meeting-group {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.meeting-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.meeting-badge-ministerial   { background: #e8f8f5; color: #1a7d6e; }
+.meeting-badge-administration { background: #fdecea; color: var(--red); }
+.meeting-badge-holiday        { background: #eafaf1; color: #1e8449; }
+.meeting-badge-local          { background: var(--bg); color: var(--text-sub); }
+
+.meeting-cal-btn {
+  padding: 5px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.meeting-cal-btn:active { background: var(--primary-light); }
 
 .support-btn-alt {
   background: transparent;

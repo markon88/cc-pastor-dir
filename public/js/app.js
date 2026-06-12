@@ -7,6 +7,7 @@ import { initAmaView, renderAmaView, renderAmaGroupDetail } from './ama.js';
 import { renderPastorDetail, renderChurchDetail } from './detail.js';
 import { renderSupportView } from './support.js';
 import { renderAdminView } from './admin.js';
+import { checkAmaBanner } from './ama-meetings.js';
 
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -65,6 +66,8 @@ async function init() {
 
   pastors   = data.pastors;
   amaGroups = data.amaGroups;
+
+  checkAmaBanner(document.getElementById('banners'), currentUser, pastors);
 
   initPastorsView(pastors);
   buildChurchList(pastors, data.churchAddresses);

@@ -1,3 +1,5 @@
+import { renderAmaMeetings } from './ama-meetings.js';
+
 let allGroups = [];
 let allPastors = [];
 
@@ -23,8 +25,18 @@ export function renderAmaView(container, onSelectGroup) {
     <div class="list-header">
       <div class="view-title">AMA Groups</div>
     </div>
+    <div id="ama-meetings-slot"></div>
     <div id="ama-list" class="item-list"></div>
   `;
+
+  const slot = container.querySelector('#ama-meetings-slot');
+  renderAmaMeetings(slot);
+  if (slot.hasChildNodes()) {
+    const divider = document.createElement('div');
+    divider.className = 'section-divider';
+    divider.textContent = 'Groups';
+    slot.after(divider);
+  }
 
   const listEl = container.querySelector('#ama-list');
   listEl.innerHTML = allGroups.map(g => {
