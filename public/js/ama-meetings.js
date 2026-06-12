@@ -27,7 +27,7 @@ const SCHEDULE = [
 
   // ── Central Piedmont ────────────────────────────────────────────────────────
   { id: 'np-0204', group: 'Central Piedmont', date: '2026-02-04', type: 'ministerial' },
-  { id: 'np-0306', group: 'Central Piedmont', date: '2026-03-06', type: 'ministerial' }, // verify
+  { id: 'cp-0305', group: 'Central Piedmont', date: '2026-03-05', type: 'administration' },
   { id: 'np-0402', group: 'Central Piedmont', date: '2026-04-02', type: 'administration' },
   { id: 'np-0610', group: 'Central Piedmont', date: '2026-06-10', type: 'local' },
   { id: 'np-0826', group: 'Central Piedmont', date: '2026-08-26', type: 'ministerial' },
@@ -41,7 +41,7 @@ const SCHEDULE = [
   { id: 'ec-0520', group: 'Eastern Carolina', date: '2026-05-20', type: 'ministerial' },
   { id: 'ec-0827', group: 'Eastern Carolina', date: '2026-08-27', type: 'ministerial' },
   { id: 'ec-0915', group: 'Eastern Carolina', date: '2026-09-15', type: 'local' },
-  { id: 'ec-1022', group: 'Eastern Carolina', date: '2026-10-22', type: 'local' },
+  { id: 'ec-1006', group: 'Eastern Carolina', date: '2026-10-06', type: 'local' },
   { id: 'ec-1103', group: 'Eastern Carolina', date: '2026-11-03', type: 'local' },
   { id: 'ec-1129', group: 'Eastern Carolina', date: '2026-11-29', type: 'holiday' },
 
@@ -49,17 +49,19 @@ const SCHEDULE = [
   { id: 'up-0226', group: 'Upstate', date: '2026-02-26', type: 'administration' },
   { id: 'up-0402', group: 'Upstate', date: '2026-04-02', type: 'local' },
   { id: 'up-0507', group: 'Upstate', date: '2026-05-07', type: 'ministerial' },
-  { id: 'pa-0617', group: 'Palmetto', date: '2026-06-17', type: 'local' },
   { id: 'up-0806', group: 'Upstate', date: '2026-08-06', type: 'local' },
-  { id: 'up-1008', group: 'Upstate', date: '2026-10-08', type: 'ministerial' },
+  { id: 'up-0903', group: 'Upstate', date: '2026-09-03', type: 'local' },
+  { id: 'up-1022', group: 'Upstate', date: '2026-10-22', type: 'ministerial' },
   { id: 'up-1105', group: 'Upstate', date: '2026-11-05', type: 'local' },
 
   // ── Palmetto ──────────────────────────────────────────────────────────────
   { id: 'pa-0211', group: 'Palmetto', date: '2026-02-11', type: 'ministerial' },
+  { id: 'pa-0318', group: 'Palmetto', date: '2026-03-18', type: 'local' },
   { id: 'pa-0423', group: 'Palmetto', date: '2026-04-23', type: 'administration' },
+  { id: 'pa-0617', group: 'Palmetto', date: '2026-06-17', type: 'local' },
   { id: 'pa-0819', group: 'Palmetto', date: '2026-08-19', type: 'local' },
   { id: 'pa-0916', group: 'Palmetto', date: '2026-09-16', type: 'local' },
-  { id: 'pa-1018', group: 'Palmetto', date: '2026-10-18', type: 'local' },
+  { id: 'pa-1008', group: 'Palmetto', date: '2026-10-08', type: 'ministerial' },
   { id: 'pa-1118', group: 'Palmetto', date: '2026-11-18', type: 'local' },
   { id: 'pa-1214', group: 'Palmetto', date: '2026-12-14', type: 'holiday' },
 ];
