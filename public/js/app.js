@@ -1,5 +1,4 @@
 import { savePastors, getPastors, getStoredVersion, saveVersion, saveAmaGroups, getAmaGroups, saveChurchAddresses, getChurchAddresses, saveAmaSchedule, getAmaSchedule } from './db.js';
-import { DATA_VERSION } from './data-version.js';
 import { VERSION as APP_VERSION } from './version.js';
 import { initPastorsView, renderPastorsView } from './pastors.js';
 import { buildChurchList, renderChurchesView, getChurchByName } from './churches.js';
@@ -131,8 +130,11 @@ async function loadDirectoryData() {
 // ── Silent background update ──────────────────────────────────────────────────
 async function checkForUpdates() {
   try {
+    const vRes = await fetch('/api/data-version', { cache: 'no-store' });
+    if (!vRes.ok) return;
+    const { version: serverVersion } = await vRes.json();
     const stored = await getStoredVersion();
-    if (DATA_VERSION === stored) return;
+    if (serverVersion === stored) return;
 
     const dataRes = await fetch('/api/data', { cache: 'no-store' });
     if (!dataRes.ok) return;
@@ -141,10 +143,12 @@ async function checkForUpdates() {
       savePastors(data.pastors).catch(() => {}),
       saveAmaGroups(data.amaGroups).catch(() => {}),
       saveChurchAddresses(data.churchAddresses).catch(() => {}),
-      saveVersion(DATA_VERSION).catch(() => {}),
+      saveAmaSchedule(data.amaSchedule ?? []).catch(() => {}),
+      saveVersion(serverVersion).catch(() => {}),
     ]);
     pastors   = data.pastors;
     amaGroups = data.amaGroups;
+    initSchedule(data.amaSchedule);
     initPastorsView(pastors);
     buildChurchList(pastors, data.churchAddresses);
     initAmaView(amaGroups, pastors);
