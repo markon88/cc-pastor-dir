@@ -1,3 +1,5 @@
+import { checkForUpdates } from './app.js';
+
 function esc(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -82,8 +84,11 @@ async function checkForAppUpdate(e) {
   btn.textContent = 'Checking…';
   btn.disabled = true;
 
+  // Data check (pastor/church directory content) — independent of app code version.
+  const dataUpdated = await checkForUpdates().catch(() => false);
+
   if (!('serviceWorker' in navigator)) {
-    btn.textContent = 'Not supported in this browser';
+    btn.textContent = dataUpdated ? 'Directory data updated ✓' : 'Not supported in this browser';
     return;
   }
 
@@ -123,7 +128,7 @@ async function checkForAppUpdate(e) {
     // New SW is installing — controllerchange in app.js will reload when it activates
     btn.textContent = 'Updating… app will reload';
   } else {
-    btn.textContent = 'Already up to date ✓';
+    btn.textContent = dataUpdated ? 'Directory data updated ✓' : 'Already up to date ✓';
     setTimeout(() => { btn.textContent = 'Check for Updates'; btn.disabled = false; }, 3000);
   }
 }

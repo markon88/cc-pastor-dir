@@ -76,6 +76,18 @@ async function init() {
   setupTabs();
   renderTab('pastors');
   checkForUpdates();
+
+  // PWAs often resume an existing JS context instead of reloading when brought
+  // back to the foreground, so the once-on-load check above isn't enough —
+  // re-check whenever the app becomes visible again, with a short cooldown so
+  // rapid tab-switching doesn't spam the data-version endpoint.
+  let lastCheck = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (Date.now() - lastCheck < 60_000) return;
+    lastCheck = Date.now();
+    checkForUpdates();
+  });
 }
 
 function showLoginScreen() {
@@ -127,17 +139,19 @@ async function loadDirectoryData() {
   }
 }
 
-// ── Silent background update ──────────────────────────────────────────────────
-async function checkForUpdates() {
+// ── Background data update ──────────────────────────────────────────────────
+// Returns true if new data was found and applied, false otherwise (including
+// on failure) — so callers (e.g. the Support page button) can report status.
+export async function checkForUpdates() {
   try {
     const vRes = await fetch('/api/data-version', { cache: 'no-store' });
-    if (!vRes.ok) return;
+    if (!vRes.ok) return false;
     const { version: serverVersion } = await vRes.json();
     const stored = await getStoredVersion();
-    if (serverVersion === stored) return;
+    if (serverVersion === stored) return false;
 
     const dataRes = await fetch('/api/data', { cache: 'no-store' });
-    if (!dataRes.ok) return;
+    if (!dataRes.ok) return false;
     const data = await dataRes.json();
     await Promise.all([
       savePastors(data.pastors).catch(() => {}),
@@ -153,8 +167,10 @@ async function checkForUpdates() {
     buildChurchList(pastors, data.churchAddresses);
     initAmaView(amaGroups, pastors);
     if (detailStack.length === 0) renderTab(activeTab);
+    return true;
   } catch {
     // Offline — fail silently
+    return false;
   }
 }
 
