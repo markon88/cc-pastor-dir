@@ -1,7 +1,6 @@
-import { syncCongregations }   from './congregations.js';
-import { syncPastors }         from './pastors.js';
-import { syncConferenceChurch } from './conferenceChurch.js';
-import { notify }              from './notify.js';
+import { syncCongregations } from './congregations.js';
+import { syncPastors }       from './pastors.js';
+import { notify }            from './notify.js';
 import { getLastSync, setLastSync, logSync, bumpDataVersion } from './db.js';
 
 export default {
@@ -22,13 +21,6 @@ export default {
       return new Response('Unauthorized', { status: 401 });
     }
     const params = new URL(request.url).searchParams;
-
-    if (params.get('only') === 'conference_church') {
-      await syncConferenceChurch(env);
-      await bumpDataVersion(env);
-      return new Response('Conference church scrape complete', { status: 200 });
-    }
-
     const full = params.get('full') === 'true';
     await runSync(env, full);
     return new Response('Sync complete', { status: 200 });
@@ -58,14 +50,6 @@ async function runSync(env, fullSync = false) {
   // Only advance the cursor if both syncs succeeded
   if (congregationResult && pastorResult) {
     await setLastSync(env);
-  }
-
-  // Carolina Conference SDA Church (ANT888) is filtered out of the congregations API,
-  // so scrape its public page separately. Not subject to the eAdventist API rate limit.
-  try {
-    await syncConferenceChurch(env);
-  } catch (err) {
-    await logSync(env, 'conference_church', 'error', null, { error: err.message });
   }
 
   // Bump the data version any sync wrote to D1, so client apps' "check for

@@ -3,4 +3,4 @@
 node_modules/
 GoogleClientID.rtf
 data/
-sync-worker/src/conferenceChurch.js
+conference-church-scrape/
