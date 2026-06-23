@@ -62,9 +62,9 @@ CREATE TABLE IF NOT EXISTS ama_groups (
 );
 
 CREATE TABLE IF NOT EXISTS pastor_churches (
-  pastor_id   TEXT NOT NULL,
-  church_name TEXT NOT NULL,
-  PRIMARY KEY (pastor_id, church_name)
+  pastor_id        TEXT NOT NULL,
+  church_org_code  TEXT NOT NULL,
+  PRIMARY KEY (pastor_id, church_org_code)
 );
 
 CREATE TABLE IF NOT EXISTS pastor_ama_groups (

@@ -11,7 +11,7 @@ export async function onRequestGet({ env }) {
   ] = await env.DB.batch([
     env.DB.prepare('SELECT id, last_name, first_name, display_name, email, birthday, street, city, state, zip, primary_phone FROM pastors WHERE active = 1 ORDER BY last_name, first_name'),
     env.DB.prepare('SELECT pastor_id, number, mobile, confidential FROM pastor_phones'),
-    env.DB.prepare('SELECT pastor_id, church_name FROM pastor_churches'),
+    env.DB.prepare('SELECT pastor_id, church_org_code FROM pastor_churches'),
     env.DB.prepare('SELECT pastor_id, group_id FROM pastor_ama_groups'),
     env.DB.prepare('SELECT name, org_code, street, city, state, zip, membership FROM churches ORDER BY name'),
     env.DB.prepare('SELECT id, name, leader_id FROM ama_groups ORDER BY sort_order, name'),
@@ -29,9 +29,12 @@ export async function onRequestGet({ env }) {
     });
   }
 
+  const churchNameByOrgCode = Object.fromEntries(churchRows.map(c => [c.org_code, c.name]));
+
   const churchesByPastor = {};
   for (const r of pcRows) {
-    (churchesByPastor[r.pastor_id] ??= []).push(r.church_name);
+    const churchName = churchNameByOrgCode[r.church_org_code];
+    if (churchName) (churchesByPastor[r.pastor_id] ??= []).push(churchName);
   }
 
   const groupsByPastor = {};
