@@ -10,14 +10,16 @@ export function renderPastorDetail(container, pastor, onBack, onSelectChurch, on
     : '';
 
   // eAdventist sometimes stores the same number twice (e.g. a "family phone"
-  // fallback that happens to match the cell) — collapse duplicates by number,
+  // fallback that happens to match the cell), occasionally with different
+  // formatting (dashes vs none) — collapse duplicates by digits only,
   // preferring the mobile-flagged copy so the "mobile" tag still shows.
-  const phonesByNumber = new Map();
+  const phonesByDigits = new Map();
   for (const p of pastor.phones) {
-    const existing = phonesByNumber.get(p.number);
-    if (!existing || (p.mobile && !existing.mobile)) phonesByNumber.set(p.number, p);
+    const digits = p.number.replace(/\D/g, '');
+    const existing = phonesByDigits.get(digits);
+    if (!existing || (p.mobile && !existing.mobile)) phonesByDigits.set(digits, p);
   }
-  const allPhones = [...phonesByNumber.values()];
+  const allPhones = [...phonesByDigits.values()];
   const mobile = allPhones.find(p => p.mobile);
 
   container.innerHTML = `
