@@ -9,8 +9,16 @@ export function renderPastorDetail(container, pastor, onBack, onSelectChurch, on
     ? `${addr.street ? addr.street + '<br>' : ''}${addr.city}${addr.city && addr.state ? ', ' : ''}${addr.state} ${addr.zip}`
     : '';
 
-  const mobile = pastor.phones.find(p => p.mobile);
-  const allPhones = pastor.phones;
+  // eAdventist sometimes stores the same number twice (e.g. a "family phone"
+  // fallback that happens to match the cell) — collapse duplicates by number,
+  // preferring the mobile-flagged copy so the "mobile" tag still shows.
+  const phonesByNumber = new Map();
+  for (const p of pastor.phones) {
+    const existing = phonesByNumber.get(p.number);
+    if (!existing || (p.mobile && !existing.mobile)) phonesByNumber.set(p.number, p);
+  }
+  const allPhones = [...phonesByNumber.values()];
+  const mobile = allPhones.find(p => p.mobile);
 
   container.innerHTML = `
     <div class="detail-header">
