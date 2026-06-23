@@ -57,8 +57,9 @@ async function runSync(env, fullSync = false) {
   await bumpDataVersion(env);
 
   const newChurches      = congregationResult?.newChurches      ?? [];
+  const newPastors       = pastorResult?.newPastors              ?? [];
   const unmatchedPastors = pastorResult?.unmatchedPastors        ?? [];
-  if (newChurches.length > 0 || unmatchedPastors.length > 0) {
-    await notify(env, newChurches, unmatchedPastors);
+  if (newChurches.length > 0 || newPastors.length > 0 || unmatchedPastors.length > 0) {
+    await notify(env, newChurches, newPastors, unmatchedPastors);
   }
 }
