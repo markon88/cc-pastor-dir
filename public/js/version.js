@@ -1,4 +1,4 @@
-export const VERSION = 'v10.2.0';
+export const VERSION = 'v10.2.1';
 
 // Temporary, informational-only feature — set to false to hide the VLP/VLL tab
 // and church-detail section without a code rollback. The data keeps syncing
