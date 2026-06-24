@@ -7,7 +7,11 @@ export function initVolunteersView(volunteers) {
   );
 }
 
-export function renderVolunteersView(container, onSelectChurch) {
+export function getVolunteerById(id) {
+  return allVolunteers.find(v => v.id === id) || null;
+}
+
+export function renderVolunteersView(container, onSelectVolunteer) {
   container.innerHTML = `
     <div class="list-header">
       <input type="search" id="volunteer-search" class="search-input" placeholder="Search VLPs/VLLs or churches…" autocomplete="off" value="${escHtml(searchQuery)}">
@@ -25,13 +29,13 @@ export function renderVolunteersView(container, onSelectChurch) {
 
   searchEl.addEventListener('input', e => {
     searchQuery = e.target.value;
-    renderList(listEl, onSelectChurch);
+    renderList(listEl, onSelectVolunteer);
   });
 
-  renderList(listEl, onSelectChurch);
+  renderList(listEl, onSelectVolunteer);
 }
 
-function renderList(listEl, onSelectChurch) {
+function renderList(listEl, onSelectVolunteer) {
   const q = searchQuery.trim().toLowerCase();
   const filtered = q
     ? allVolunteers.filter(v => `${v.displayName} ${v.church} ${v.officeName}`.toLowerCase().includes(q))
@@ -43,14 +47,14 @@ function renderList(listEl, onSelectChurch) {
   }
 
   listEl.innerHTML = filtered.map(v => `
-    <div class="list-item" data-church="${escHtml(v.church)}">
+    <div class="list-item" data-id="${escHtml(v.id)}">
       <div class="item-name">${escHtml(v.displayName)} <span class="tag tag-volunteer">${escHtml(v.officeName)}</span></div>
       <div class="item-sub">${escHtml(v.church)}</div>
     </div>
   `).join('');
 
   listEl.querySelectorAll('.list-item').forEach(el => {
-    el.addEventListener('click', () => onSelectChurch(el.dataset.church));
+    el.addEventListener('click', () => onSelectVolunteer(el.dataset.id));
   });
 }
 

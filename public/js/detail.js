@@ -99,7 +99,7 @@ export function renderPastorDetail(container, pastor, onBack, onSelectChurch, on
   }
 }
 
-export function renderChurchDetail(container, church, onSelectPastor, onBack) {
+export function renderChurchDetail(container, church, onSelectPastor, onBack, onSelectVolunteer) {
   if (!church) { container.innerHTML = '<div class="empty-state">Church not found</div>'; return; }
 
   const addr = church.address;
@@ -145,7 +145,7 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack) {
         <div class="detail-section">
           <div class="detail-label">VLP / VLL (per eAdventist, unverified)</div>
           ${church.volunteers.map(v => `
-            <div class="detail-value">${escHtml(v.displayName)} <span class="tag tag-volunteer">${escHtml(v.officeName)}</span></div>
+            <div class="detail-value volunteer-link" data-id="${escHtml(v.id)}" style="cursor:pointer;color:var(--primary);">${escHtml(v.displayName)} <span class="tag tag-volunteer">${escHtml(v.officeName)}</span></div>
           `).join('')}
         </div>
       ` : ''}
@@ -159,6 +159,65 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack) {
   container.querySelectorAll('.pastor-link').forEach(el => {
     el.addEventListener('click', () => onSelectPastor(el.dataset.id));
   });
+  if (onSelectVolunteer) {
+    container.querySelectorAll('.volunteer-link').forEach(el => {
+      el.addEventListener('click', () => onSelectVolunteer(el.dataset.id));
+    });
+  }
+}
+
+export function renderVolunteerDetail(container, volunteer, onBack, onSelectChurch) {
+  if (!volunteer) { container.innerHTML = '<div class="empty-state">Volunteer not found</div>'; return; }
+
+  container.innerHTML = `
+    <div class="detail-header">
+      <button class="back-btn" id="volunteer-detail-back">← Back</button>
+    </div>
+    <div class="detail-body">
+      <h2 class="detail-name">${escHtml(volunteer.displayName)}</h2>
+
+      <div class="detail-section">
+        <div class="detail-label">Role (per eAdventist, unverified)</div>
+        <div class="detail-value"><span class="tag tag-volunteer">${escHtml(volunteer.officeName)}</span></div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-label">Church</div>
+        <div class="detail-value church-link" data-name="${escHtml(volunteer.church)}" style="cursor:pointer;color:var(--primary);">${escHtml(volunteer.church)}</div>
+      </div>
+
+      ${volunteer.phone ? `
+        <div class="detail-section">
+          <div class="detail-label">Phone</div>
+          <div class="detail-value"><a href="tel:+1${volunteer.phone}" class="phone-link">${formatPhone(volunteer.phone)}</a></div>
+        </div>
+      ` : ''}
+
+      ${volunteer.email ? `
+        <div class="detail-section">
+          <div class="detail-label">Email</div>
+          <div class="detail-value"><a href="mailto:${escHtml(volunteer.email)}" class="email-link">${escHtml(volunteer.email)}</a></div>
+        </div>
+      ` : ''}
+
+      <div class="banner banner-update volunteer-disclaimer">
+        This reflects data currently on file with eAdventist, for verification purposes only — it is not confirmed.
+        Please consult the local pastor and conference leadership to confirm current actual status. Corrections must
+        be made by the conference clerk (Kristina McFeeters).
+      </div>
+    </div>
+
+    <div class="action-bar">
+      ${volunteer.phone ? `<a href="tel:+1${volunteer.phone}" class="action-btn action-call">Call</a>` : ''}
+      ${volunteer.phone ? `<a href="sms:+1${volunteer.phone}" class="action-btn action-text">Text</a>` : ''}
+      ${volunteer.email ? `<a href="mailto:${escHtml(volunteer.email)}" class="action-btn action-email">Email</a>` : ''}
+    </div>
+  `;
+
+  container.querySelector('#volunteer-detail-back').addEventListener('click', onBack);
+  if (onSelectChurch) {
+    container.querySelector('.church-link').addEventListener('click', () => onSelectChurch(volunteer.church));
+  }
 }
 
 function openMaps(addr) {

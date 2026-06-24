@@ -3,8 +3,8 @@ import { VERSION as APP_VERSION, VOLUNTEERS_FEATURE_ENABLED } from './version.js
 import { initPastorsView, renderPastorsView } from './pastors.js';
 import { buildChurchList, renderChurchesView, getChurchByName } from './churches.js';
 import { initAmaView, renderAmaView, renderAmaGroupDetail } from './ama.js';
-import { initVolunteersView, renderVolunteersView } from './volunteers.js';
-import { renderPastorDetail, renderChurchDetail } from './detail.js';
+import { initVolunteersView, renderVolunteersView, getVolunteerById } from './volunteers.js';
+import { renderPastorDetail, renderChurchDetail, renderVolunteerDetail } from './detail.js';
 import { renderSupportView } from './support.js';
 import { renderAdminView } from './admin.js';
 import { checkAmaBanner, initSchedule } from './ama-meetings.js';
@@ -210,7 +210,7 @@ function renderTab(tab) {
   } else if (tab === 'groups') {
     renderAmaView(mainContent, id => showAmaGroupDetail(id));
   } else if (tab === 'volunteers') {
-    renderVolunteersView(mainContent, name => showChurchDetail(name));
+    renderVolunteersView(mainContent, id => showVolunteerDetail(id));
   } else if (tab === 'support') {
     renderSupportView(mainContent, currentUser);
   } else if (tab === 'admin') {
@@ -231,7 +231,13 @@ function showPastorDetail(id) {
 function showChurchDetail(name) {
   const church = getChurchByName(name);
   detailStack.push({ type: 'church', name });
-  renderChurchDetail(mainContent, church, id => showPastorDetail(id), goBack);
+  renderChurchDetail(mainContent, church, id => showPastorDetail(id), goBack, id => showVolunteerDetail(id));
+}
+
+function showVolunteerDetail(id) {
+  const volunteer = getVolunteerById(id);
+  detailStack.push({ type: 'volunteer', id });
+  renderVolunteerDetail(mainContent, volunteer, goBack, name => showChurchDetail(name));
 }
 
 function showAmaGroupDetail(groupId) {
@@ -250,6 +256,7 @@ function goBack() {
   if (prev.type === 'pastor') showPastorDetail(prev.id);
   else if (prev.type === 'church') showChurchDetail(prev.name);
   else if (prev.type === 'ama-group') showAmaGroupDetail(prev.id);
+  else if (prev.type === 'volunteer') showVolunteerDetail(prev.id);
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────
