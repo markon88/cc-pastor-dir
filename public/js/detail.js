@@ -141,6 +141,14 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack) {
           : '<div class="detail-value" style="color:var(--text-secondary)">Vacant</div>'
         }
       </div>
+      ${church.volunteers && church.volunteers.length ? `
+        <div class="detail-section">
+          <div class="detail-label">VLP / VLL (per eAdventist, unverified)</div>
+          ${church.volunteers.map(v => `
+            <div class="detail-value">${escHtml(v.displayName)} <span class="tag tag-volunteer">${escHtml(v.officeName)}</span></div>
+          `).join('')}
+        </div>
+      ` : ''}
     </div>
   `;
 

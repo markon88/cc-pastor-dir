@@ -123,3 +123,23 @@ export async function getChurchAddresses() {
     req.onerror = e => reject(e.target.error);
   });
 }
+
+export async function saveVolunteers(volunteers) {
+  const d = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(META_STORE, 'readwrite');
+    tx.objectStore(META_STORE).put(JSON.stringify(volunteers), 'volunteers');
+    tx.oncomplete = resolve;
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+export async function getVolunteers() {
+  const d = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(META_STORE, 'readonly');
+    const req = tx.objectStore(META_STORE).get('volunteers');
+    req.onsuccess = e => resolve(e.target.result ? JSON.parse(e.target.result) : null);
+    req.onerror = e => reject(e.target.error);
+  });
+}

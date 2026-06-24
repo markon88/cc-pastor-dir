@@ -1,4 +1,9 @@
 export async function onRequestGet({ env }) {
+  // Server-side kill switch for the temporary, informational-only VLP/VLL
+  // feature — set VOLUNTEERS_ENABLED=false as a Cloudflare Pages env var to
+  // stop serving this data to all clients instantly, with no redeploy needed.
+  const volunteersEnabled = env.VOLUNTEERS_ENABLED !== 'false';
+
   const [
     { results: pastorRows },
     { results: phoneRows },
@@ -8,6 +13,7 @@ export async function onRequestGet({ env }) {
     { results: groupRows },
     { results: versionRows },
     { results: meetingRows },
+    { results: volunteerRows },
   ] = await env.DB.batch([
     env.DB.prepare('SELECT id, last_name, first_name, display_name, email, birthday, street, city, state, zip, primary_phone FROM pastors WHERE active = 1 ORDER BY last_name, first_name'),
     env.DB.prepare('SELECT pastor_id, number, mobile, confidential FROM pastor_phones'),
@@ -17,6 +23,7 @@ export async function onRequestGet({ env }) {
     env.DB.prepare('SELECT id, name, leader_id FROM ama_groups ORDER BY sort_order, name'),
     env.DB.prepare("SELECT value FROM meta WHERE key = 'version'"),
     env.DB.prepare('SELECT id, group_name, date, type FROM ama_meetings ORDER BY date'),
+    env.DB.prepare('SELECT eadventist_id, office_id, office_name, display_name, email, phone, church_org_code FROM volunteers ORDER BY office_name, display_name'),
   ]);
 
   // Build lookup maps from junction/detail tables
@@ -79,9 +86,25 @@ export async function onRequestGet({ env }) {
     };
   }
 
+  // VLPs/VLLs (volunteer offices) — kept separate from `pastors` so they never
+  // show up in pastor search/listings, only on the dedicated Volunteers tab and
+  // church detail page. churchName is resolved here, same as pastor.churches.
+  const volunteers = !volunteersEnabled ? [] : volunteerRows
+    .map(v => ({
+      id:          v.eadventist_id,
+      officeId:    v.office_id,
+      officeName:  v.office_name,
+      displayName: v.display_name,
+      email:       v.email ?? null,
+      phone:       v.phone ?? null,
+      church:      churchNameByOrgCode[v.church_org_code] ?? null,
+    }))
+    .filter(v => v.church);
+
   return new Response(JSON.stringify({
     version:         versionRows[0]?.value ?? '0',
     pastors,
+    volunteers,
     amaGroups,
     churchAddresses,
     amaSchedule:     meetingRows.map(m => ({ id: m.id, group: m.group_name, date: m.date, type: m.type })),

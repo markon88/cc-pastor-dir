@@ -73,6 +73,22 @@ CREATE TABLE IF NOT EXISTS pastor_ama_groups (
   PRIMARY KEY (pastor_id, group_id)
 );
 
+-- Volunteer Lay Pastors (eAdventist office 84) and Volunteer Lay/Church Leaders
+-- (office 122) — unpaid volunteer roles, kept separate from the pastors table
+-- so they never appear in pastor search/listings, only on a dedicated Volunteers
+-- tab and on the church detail page.
+CREATE TABLE IF NOT EXISTS volunteers (
+  eadventist_id   TEXT PRIMARY KEY,
+  office_id       TEXT NOT NULL,
+  office_name     TEXT NOT NULL,
+  last_name       TEXT NOT NULL,
+  first_name      TEXT NOT NULL,
+  display_name    TEXT NOT NULL,
+  email           TEXT,
+  phone           TEXT,
+  church_org_code TEXT NOT NULL
+);
+
 -- Stores data version for cache invalidation
 CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,

@@ -357,6 +357,17 @@ html, body {
   letter-spacing: 0.05em;
 }
 
+.tag-volunteer {
+  background: var(--amber-bg);
+  color: #7d4e00;
+}
+
+.volunteer-disclaimer {
+  display: block;
+  line-height: 1.4;
+  padding: 10px 16px;
+}
+
 /* ── Action Bar ──────────────────────────────────────────────────────────── */
 .action-bar {
   position: fixed;

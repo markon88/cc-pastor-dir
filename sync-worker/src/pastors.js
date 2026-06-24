@@ -56,8 +56,10 @@ export async function syncPastors(env) {
   const orgList = Array.isArray(orgs) ? orgs : [orgs];
 
   // eAdventist office ids for paid pastoral staff. 84 (Lay Pastor) and 122 (Church Leader)
-  // are volunteer roles, deliberately excluded.
+  // are volunteer roles — excluded here and synced separately into `volunteers` below
+  // so they never show up as pastors.
   const PASTOR_OFFICE_IDS = new Set(['33', '34', '36']); // Pastor, Pastor - Associate, Pastor - Youth
+  const VOLUNTEER_OFFICE_IDS = new Set(['84', '122']); // Lay Pastor (VLP), Church Leader (VLL)
 
   // Deduplicate officers by eAdventist ID — each real pastor may serve multiple churches
   const officerMap = new Map();
@@ -172,6 +174,7 @@ export async function syncPastors(env) {
   // present here, replace its pastor links with whoever currently holds a pastor office,
   // so a pastor moving between churches drops the old link and gains the new one.
   let churchLinksUpdated = 0;
+  let volunteersUpdated = 0;
   for (const org of orgList) {
     const orgCode = org['@_org_code'];
     const orgId   = String(org['@_id'] ?? '');
@@ -198,6 +201,33 @@ export async function syncPastors(env) {
       ).bind(pastorId, church.org_code).run();
     }
     churchLinksUpdated++;
+
+    // Volunteers (VLP/VLL) — replace this church's volunteer records wholesale with
+    // whatever eAdventist currently lists, preserving its exact office label so the
+    // app always reflects eAdventist's current status rather than our own judgment.
+    const currentVolunteers = officers.filter(o => VOLUNTEER_OFFICE_IDS.has(String(o.office?.['@_id'] ?? '')));
+    await env.DB.prepare('DELETE FROM volunteers WHERE church_org_code = ?').bind(church.org_code).run();
+    for (const o of currentVolunteers) {
+      const vLastName  = String(o.last_name  ?? '').trim();
+      const vFirstName = String(o.first_name ?? '').trim();
+      if (!vLastName || !vFirstName) continue;
+      const vEId       = String(o['@_id']);
+      const vOfficeId  = String(o.office?.['@_id'] ?? '');
+      const vOfficeName = String(o.office?.['#text'] ?? '').trim();
+      const vEmail     = o.email ? String(o.email).trim() : null;
+      const vRawPhone  = o.mobile_phone ? String(o.mobile_phone).trim() : null;
+      const vPhone     = vRawPhone && vRawPhone !== '0000000000-' ? vRawPhone.replace(/-$/, '') : null;
+
+      await env.DB.prepare(`
+        INSERT INTO volunteers (eadventist_id, office_id, office_name, last_name, first_name, display_name, email, phone, church_org_code)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT (eadventist_id) DO UPDATE SET
+          office_id = excluded.office_id, office_name = excluded.office_name,
+          last_name = excluded.last_name, first_name = excluded.first_name, display_name = excluded.display_name,
+          email = excluded.email, phone = excluded.phone, church_org_code = excluded.church_org_code
+      `).bind(vEId, vOfficeId, vOfficeName, vLastName, vFirstName, `${vFirstName} ${vLastName}`, vEmail, vPhone, church.org_code).run();
+      volunteersUpdated++;
+    }
   }
 
   await logSync(env, 'pastors', 'sync_complete', null, {
@@ -206,6 +236,7 @@ export async function syncPastors(env) {
     inserted,
     unmatched: unmatchedPastors.length,
     churchLinksUpdated,
+    volunteersUpdated,
   });
 
   return { updated, unmatchedPastors, newPastors };

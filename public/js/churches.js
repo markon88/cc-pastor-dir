@@ -3,7 +3,7 @@ import { searchChurches } from './search.js';
 let allChurches = [];
 let searchQuery = '';
 
-export function buildChurchList(pastors, churchAddresses = {}) {
+export function buildChurchList(pastors, churchAddresses = {}, volunteers = []) {
   // Build pastor lookup by church name
   const pastorsByChurch = new Map();
   pastors.forEach(p => {
@@ -11,6 +11,12 @@ export function buildChurchList(pastors, churchAddresses = {}) {
       if (!pastorsByChurch.has(name)) pastorsByChurch.set(name, []);
       pastorsByChurch.get(name).push(p);
     });
+  });
+
+  const volunteersByChurch = new Map();
+  volunteers.forEach(v => {
+    if (!volunteersByChurch.has(v.church)) volunteersByChurch.set(v.church, []);
+    volunteersByChurch.get(v.church).push(v);
   });
 
   // Start from the full church list, not just pastor assignments
@@ -21,6 +27,7 @@ export function buildChurchList(pastors, churchAddresses = {}) {
       return {
         name,
         pastors:    pastorsByChurch.get(name) || [],
+        volunteers: volunteersByChurch.get(name) || [],
         address,
         membership: a?.membership ?? null,
       };

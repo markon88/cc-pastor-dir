@@ -1,8 +1,9 @@
-import { savePastors, getPastors, getStoredVersion, saveVersion, saveAmaGroups, getAmaGroups, saveChurchAddresses, getChurchAddresses, saveAmaSchedule, getAmaSchedule } from './db.js';
-import { VERSION as APP_VERSION } from './version.js';
+import { savePastors, getPastors, getStoredVersion, saveVersion, saveAmaGroups, getAmaGroups, saveChurchAddresses, getChurchAddresses, saveAmaSchedule, getAmaSchedule, saveVolunteers, getVolunteers } from './db.js';
+import { VERSION as APP_VERSION, VOLUNTEERS_FEATURE_ENABLED } from './version.js';
 import { initPastorsView, renderPastorsView } from './pastors.js';
 import { buildChurchList, renderChurchesView, getChurchByName } from './churches.js';
 import { initAmaView, renderAmaView, renderAmaGroupDetail } from './ama.js';
+import { initVolunteersView, renderVolunteersView } from './volunteers.js';
 import { renderPastorDetail, renderChurchDetail } from './detail.js';
 import { renderSupportView } from './support.js';
 import { renderAdminView } from './admin.js';
@@ -41,6 +42,9 @@ async function init() {
   if (currentUser.isAdmin) {
     document.querySelector('[data-tab="admin"]').style.display = 'flex';
   }
+  if (VOLUNTEERS_FEATURE_ENABLED) {
+    document.querySelector('[data-tab="volunteers"]').style.display = 'flex';
+  }
 
   // Register service worker and auto-reload when a new version takes over
   if ('serviceWorker' in navigator) {
@@ -70,8 +74,9 @@ async function init() {
   checkAmaBanner(document.getElementById('banners'), currentUser, pastors);
 
   initPastorsView(pastors);
-  buildChurchList(pastors, data.churchAddresses);
+  buildChurchList(pastors, data.churchAddresses, VOLUNTEERS_FEATURE_ENABLED ? (data.volunteers ?? []) : []);
   initAmaView(amaGroups, pastors);
+  initVolunteersView(data.volunteers ?? []);
 
   setupTabs();
   renderTab('pastors');
@@ -108,14 +113,15 @@ function showLoginScreen() {
 async function loadDirectoryData() {
   // Try IndexedDB first — works offline after first authenticated load
   try {
-    const [stored, storedAma, storedChurches, storedSchedule] = await Promise.all([
+    const [stored, storedAma, storedChurches, storedSchedule, storedVolunteers] = await Promise.all([
       getPastors(),
       getAmaGroups(),
       getChurchAddresses(),
       getAmaSchedule(),
+      getVolunteers(),
     ]);
     if (stored?.length > 0 && storedAma && storedChurches && storedSchedule !== null) {
-      return { pastors: stored, amaGroups: storedAma, churchAddresses: storedChurches, amaSchedule: storedSchedule };
+      return { pastors: stored, amaGroups: storedAma, churchAddresses: storedChurches, amaSchedule: storedSchedule, volunteers: storedVolunteers ?? [] };
     }
   } catch {
     // Fall through to API fetch
@@ -131,6 +137,7 @@ async function loadDirectoryData() {
       saveAmaGroups(data.amaGroups).catch(() => {}),
       saveChurchAddresses(data.churchAddresses).catch(() => {}),
       saveAmaSchedule(data.amaSchedule ?? []).catch(() => {}),
+      saveVolunteers(data.volunteers ?? []).catch(() => {}),
       saveVersion(data.version).catch(() => {}),
     ]);
     return data;
@@ -158,14 +165,16 @@ export async function checkForUpdates() {
       saveAmaGroups(data.amaGroups).catch(() => {}),
       saveChurchAddresses(data.churchAddresses).catch(() => {}),
       saveAmaSchedule(data.amaSchedule ?? []).catch(() => {}),
+      saveVolunteers(data.volunteers ?? []).catch(() => {}),
       saveVersion(serverVersion).catch(() => {}),
     ]);
     pastors   = data.pastors;
     amaGroups = data.amaGroups;
     initSchedule(data.amaSchedule);
     initPastorsView(pastors);
-    buildChurchList(pastors, data.churchAddresses);
+    buildChurchList(pastors, data.churchAddresses, VOLUNTEERS_FEATURE_ENABLED ? (data.volunteers ?? []) : []);
     initAmaView(amaGroups, pastors);
+    initVolunteersView(data.volunteers ?? []);
     if (detailStack.length === 0) renderTab(activeTab);
     return true;
   } catch {
@@ -200,6 +209,8 @@ function renderTab(tab) {
     renderChurchesView(mainContent, name => showChurchDetail(name));
   } else if (tab === 'groups') {
     renderAmaView(mainContent, id => showAmaGroupDetail(id));
+  } else if (tab === 'volunteers') {
+    renderVolunteersView(mainContent, name => showChurchDetail(name));
   } else if (tab === 'support') {
     renderSupportView(mainContent, currentUser);
   } else if (tab === 'admin') {
