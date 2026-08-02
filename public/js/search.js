@@ -24,6 +24,7 @@ export function searchChurches(churches, query) {
   const q = query.toLowerCase();
   return churches.filter(c => {
     const pastorNames = c.pastors.map(p => p.displayName).join(' ').toLowerCase();
-    return c.name.toLowerCase().includes(q) || pastorNames.includes(q);
+    const county = c.address?.county ?? '';
+    return c.name.toLowerCase().includes(q) || pastorNames.includes(q) || county.toLowerCase().includes(q);
   });
 }
