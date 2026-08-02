@@ -65,7 +65,7 @@ function renderList(listEl, onSelect) {
 
   listEl.innerHTML = filtered.map(c => {
     const pastorNames = c.pastors.length ? c.pastors.map(p => p.displayName).join(', ') : 'Vacant';
-    const location = c.address ? `${c.address.city}, ${c.address.state}` : '';
+    const location = c.address ? `${c.address.city}, ${c.address.state}${c.address.county ? ` (${c.address.county} Co.)` : ''}` : '';
     const membershipLine = c.membership != null
       ? `<div class="item-sub">Membership: ${c.membership}</div>`
       : '';

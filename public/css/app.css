@@ -331,6 +331,12 @@ html, body {
   margin-top: 2px;
 }
 
+.church-address-county {
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-top: 2px;
+}
+
 .church-directions-hint {
   font-size: 12px;
   color: var(--primary);

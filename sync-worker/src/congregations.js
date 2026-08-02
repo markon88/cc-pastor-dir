@@ -1,4 +1,5 @@
 import { logSync, formatFromDate } from './db.js';
+import { geocodeCounty } from './geocode.js';
 
 const BASE_URL = 'https://www.eadventist.net/web_services/congregations';
 const MASK = 'ANT8';
@@ -38,20 +39,29 @@ export async function syncCongregations(env, lastSync) {
     const membership = c.member_count ?? null;
 
     // Match by org_code — stable across name changes (e.g. a group becoming a company)
-    const existing = await env.DB.prepare('SELECT name FROM churches WHERE org_code = ?').bind(orgCode).first();
+    const existing = await env.DB.prepare(
+      'SELECT name, street, city, state, zip, county FROM churches WHERE org_code = ?'
+    ).bind(orgCode).first();
 
     if (existing) {
+      const addressChanged = existing.street !== street || existing.city !== city
+        || existing.state !== state || existing.zip !== zip;
+      const county = addressChanged
+        ? await geocodeCounty(street, city, state, zip)
+        : existing.county;
+
       await env.DB.prepare(`
         UPDATE churches
-        SET name = ?, org_id = ?, org_code = ?, region = ?, street = ?, city = ?, state = ?, zip = ?, membership = ?
+        SET name = ?, org_id = ?, org_code = ?, region = ?, street = ?, city = ?, state = ?, zip = ?, membership = ?, county = ?
         WHERE org_code = ?
-      `).bind(name, orgId, orgCode, region, street, city, state, zip, membership, orgCode).run();
+      `).bind(name, orgId, orgCode, region, street, city, state, zip, membership, county, orgCode).run();
       updated++;
     } else {
+      const county = await geocodeCounty(street, city, state, zip);
       await env.DB.prepare(`
-        INSERT INTO churches (name, org_id, org_code, region, street, city, state, zip, membership)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(name, orgId, orgCode, region, street, city, state, zip, membership).run();
+        INSERT INTO churches (name, org_id, org_code, region, street, city, state, zip, membership, county)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(name, orgId, orgCode, region, street, city, state, zip, membership, county).run();
       newChurches.push({ name, orgId, orgCode });
       await logSync(env, 'congregations', 'insert', name, { orgId, orgCode, note: 'auto-inserted from eAdventist' });
     }

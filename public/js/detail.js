@@ -111,6 +111,7 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack, on
         <div class="church-address-link" id="church-addr" style="cursor:pointer;">
           <div class="church-address-street">${escHtml(addr.street)}</div>
           <div class="church-address-city">${escHtml(addr.city)}, ${escHtml(addr.state)} ${escHtml(addr.zip)}</div>
+          ${addr.county ? `<div class="church-address-county">${escHtml(addr.county)} County</div>` : ''}
           <div class="church-directions-hint">Tap for directions</div>
         </div>
       </div>
