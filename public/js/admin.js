@@ -51,6 +51,12 @@ export function renderAdminView(container) {
         <p class="support-section-desc">Runs automatically Tuesday & Friday at 4 AM ET. Items marked <strong>insert</strong> or <strong>unmatched</strong> need review.</p>
         <div id="admin-sync-log"><p class="support-section-desc">Loading…</p></div>
       </div>
+
+      <div class="support-section">
+        <div class="support-section-title">Dark Counties</div>
+        <p class="support-section-desc">NC/SC counties with no church on record, derived from geocoded church addresses. Churches missing a county (bad/incomplete address) are listed separately below.</p>
+        <div id="admin-dark-counties"><p class="support-section-desc">Loading…</p></div>
+      </div>
     </div>
   `;
 
@@ -62,6 +68,7 @@ export function renderAdminView(container) {
   loadActivity();
   loadAllowedEmails();
   loadSyncLog();
+  loadDarkCounties();
 }
 
 async function loadSyncLog() {
@@ -107,6 +114,39 @@ async function loadSyncLog() {
         <span class="admin-version-badge ${actionClass(e.action)}">${esc(e.action)}</span>
       </div>`;
   }).join('');
+}
+
+async function loadDarkCounties() {
+  const el = document.getElementById('admin-dark-counties');
+  if (!el) return;
+
+  const res = await fetch('/api/admin/dark-counties');
+  if (!res.ok) {
+    el.innerHTML = '<p class="support-section-desc" style="color:var(--red)">Failed to load dark counties.</p>';
+    return;
+  }
+
+  const { darkCounties, churchesMissingCounty } = await res.json();
+
+  const countyLists = Object.entries(darkCounties).map(([state, counties]) => `
+    <div class="item-sub" style="margin-bottom:8px;">
+      <strong>${esc(state)}</strong> (${counties.length}): ${counties.length ? esc(counties.join(', ')) : 'none — every county has a church'}
+    </div>
+  `).join('');
+
+  const missingHtml = churchesMissingCounty.length ? `
+    <div class="item-sub" style="margin-top:12px;"><strong>Churches missing a county</strong> (bad/incomplete address — needs manual review):</div>
+    ${churchesMissingCounty.map(c => `
+      <div class="admin-activity-row">
+        <div class="admin-activity-info">
+          <div class="item-name">${esc(c.name)}</div>
+          <div class="item-sub">${esc([c.street, c.city, c.state, c.zip].filter(Boolean).join(', ') || 'No address on file')}</div>
+        </div>
+      </div>
+    `).join('')}
+  ` : '';
+
+  el.innerHTML = countyLists + missingHtml;
 }
 
 async function loadActivity() {
