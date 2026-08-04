@@ -71,6 +71,27 @@ export function isAdmin(email, env) {
   return admins.includes(email.toLowerCase());
 }
 
+// Temporary, incident-scoped admin grant (e.g. an out-of-area pastor deputized
+// to help call around during a live disaster). Distinct from the static
+// ADMIN_EMAILS list — expires automatically when the incident closes since
+// callers only pass an incidentId that's still active.
+export async function isDisasterAdmin(email, db, incidentId) {
+  if (!db || !incidentId) return false;
+  const row = await db.prepare(
+    'SELECT 1 FROM disaster_admins WHERE incident_id = ? AND email = ? AND revoked_at IS NULL'
+  ).bind(incidentId, email.toLowerCase()).first();
+  return !!row;
+}
+
+// A logged-in user's directory identity may differ from their login email
+// (see allowed_emails.directory_email). Resolve to whichever email actually
+// appears on the pastors row.
+export async function resolveIdentityEmail(email, db) {
+  if (!db) return email;
+  const row = await db.prepare('SELECT directory_email FROM allowed_emails WHERE email = ?').bind(email).first();
+  return row?.directory_email || email;
+}
+
 export function sessionCookieHeader(token, expiresEpoch, isLocalhost) {
   const expires = new Date(expiresEpoch * 1000).toUTCString();
   const secure  = isLocalhost ? '' : '; Secure';

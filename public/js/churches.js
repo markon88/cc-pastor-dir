@@ -30,6 +30,7 @@ export function buildChurchList(pastors, churchAddresses = {}, volunteers = []) 
         volunteers: volunteersByChurch.get(name) || [],
         address,
         membership: a?.membership ?? null,
+        photoUrl:   a?.photoUrl ?? null,
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));

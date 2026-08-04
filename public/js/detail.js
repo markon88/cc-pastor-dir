@@ -1,4 +1,11 @@
 import { generateVCard } from './contacts.js';
+import { renderCountyReadiness } from './disaster.js';
+
+function photoHtml(url, label) {
+  return url
+    ? `<img class="detail-photo" src="${escHtml(url)}" alt="${escHtml(label)}">`
+    : `<div class="detail-photo detail-photo-placeholder" aria-hidden="true">${label === 'church' ? '⛪' : '👤'}</div>`;
+}
 
 export function renderPastorDetail(container, pastor, onBack, onSelectChurch, onSelectAmaGroup) {
   if (!pastor) { container.innerHTML = '<div class="empty-state">Pastor not found</div>'; return; }
@@ -27,6 +34,7 @@ export function renderPastorDetail(container, pastor, onBack, onSelectChurch, on
       <button class="back-btn" id="detail-back">← Back</button>
     </div>
     <div class="detail-body">
+      ${photoHtml(pastor.photoUrl, 'pastor')}
       <h2 class="detail-name">${escHtml(pastor.displayName)}</h2>
 
       ${pastor.churches && pastor.churches.length ? `
@@ -122,6 +130,7 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack, on
       <button class="back-btn" id="church-detail-back">← Back</button>
     </div>
     <div class="detail-body">
+      ${photoHtml(church.photoUrl, 'church')}
       <h2 class="detail-name">${escHtml(church.name)}</h2>
       ${addrHtml}
       ${addr?.county ? `
@@ -157,6 +166,8 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack, on
       ` : ''}
     </div>
   `;
+
+  renderCountyReadiness(container.querySelector('.detail-body'), church.name);
 
   container.querySelector('#church-detail-back').addEventListener('click', onBack);
   if (addr) {

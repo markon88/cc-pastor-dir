@@ -15,11 +15,11 @@ export async function onRequestGet({ env }) {
     { results: meetingRows },
     { results: volunteerRows },
   ] = await env.DB.batch([
-    env.DB.prepare('SELECT id, last_name, first_name, display_name, email, birthday, street, city, state, zip, primary_phone FROM pastors WHERE active = 1 ORDER BY last_name, first_name'),
+    env.DB.prepare('SELECT id, last_name, first_name, display_name, email, birthday, street, city, state, zip, primary_phone, photo_url FROM pastors WHERE active = 1 ORDER BY last_name, first_name'),
     env.DB.prepare('SELECT pastor_id, number, mobile, confidential FROM pastor_phones'),
     env.DB.prepare('SELECT pastor_id, church_org_code FROM pastor_churches'),
     env.DB.prepare('SELECT pastor_id, group_id FROM pastor_ama_groups'),
-    env.DB.prepare('SELECT name, org_code, street, city, state, zip, county, membership FROM churches ORDER BY name'),
+    env.DB.prepare('SELECT name, org_code, street, city, state, zip, county, membership, photo_url FROM churches ORDER BY name'),
     env.DB.prepare('SELECT id, name, leader_id FROM ama_groups ORDER BY sort_order, name'),
     env.DB.prepare("SELECT value FROM meta WHERE key = 'version'"),
     env.DB.prepare('SELECT id, group_name, date, type FROM ama_meetings ORDER BY date'),
@@ -61,6 +61,7 @@ export async function onRequestGet({ env }) {
     email:        p.email        ?? null,
     birthday:     p.birthday     ?? null,
     address:      p.street ? { street: p.street, city: p.city, state: p.state, zip: p.zip } : null,
+    photoUrl:     p.photo_url ?? null,
     phones:       phonesByPastor[p.id]   ?? [],
     primaryPhone: p.primary_phone ?? null,
     churches:     churchesByPastor[p.id] ?? [],
@@ -84,6 +85,7 @@ export async function onRequestGet({ env }) {
       zip:    c.zip,
       ...(c.county != null ? { county: c.county } : {}),
       ...(c.membership != null ? { membership: c.membership } : {}),
+      ...(c.photo_url != null ? { photoUrl: c.photo_url } : {}),
     };
   }
 

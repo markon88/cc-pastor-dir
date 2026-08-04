@@ -8,6 +8,7 @@ import { renderPastorDetail, renderChurchDetail, renderVolunteerDetail } from '.
 import { renderSupportView } from './support.js';
 import { renderAdminView } from './admin.js';
 import { checkAmaBanner, initSchedule } from './ama-meetings.js';
+import { initDisaster, checkDisasterActive, renderDisasterView } from './disaster.js';
 
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -77,10 +78,16 @@ async function init() {
   buildChurchList(pastors, data.churchAddresses, VOLUNTEERS_FEATURE_ENABLED ? (data.volunteers ?? []) : []);
   initAmaView(amaGroups, pastors);
   initVolunteersView(data.volunteers ?? []);
+  initDisaster(pastors, currentUser);
 
   setupTabs();
   renderTab('pastors');
   checkForUpdates();
+  refreshDisasterTab();
+
+  // Re-poll periodically so the Disaster tab appears/disappears live without
+  // requiring a reload — an incident can start or end while the app is open.
+  setInterval(refreshDisasterTab, 5 * 60_000);
 
   // PWAs often resume an existing JS context instead of reloading when brought
   // back to the foreground, so the once-on-load check above isn't enough —
@@ -92,7 +99,18 @@ async function init() {
     if (Date.now() - lastCheck < 60_000) return;
     lastCheck = Date.now();
     checkForUpdates();
+    refreshDisasterTab();
   });
+}
+
+async function refreshDisasterTab() {
+  const { active, isSimulation } = await checkDisasterActive();
+  const tabBtn = document.querySelector('[data-tab="disaster"]');
+  // Admins always see the tab (to start an incident); everyone else only
+  // sees it while one is active.
+  tabBtn.style.display = (active || currentUser?.isAdmin) ? 'flex' : 'none';
+  tabBtn.querySelector('span:last-child').textContent = active && isSimulation ? 'Disaster (SIM)' : 'Disaster';
+  if (activeTab === 'disaster') renderTab('disaster');
 }
 
 function showLoginScreen() {
@@ -215,6 +233,8 @@ function renderTab(tab) {
     renderSupportView(mainContent, currentUser);
   } else if (tab === 'admin') {
     renderAdminView(mainContent);
+  } else if (tab === 'disaster') {
+    renderDisasterView(mainContent);
   }
 }
 

@@ -277,6 +277,23 @@ html, body {
   line-height: 1.2;
 }
 
+.detail-photo {
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
+  object-fit: cover;
+  margin-bottom: 12px;
+}
+
+.detail-photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  background: var(--border);
+  color: var(--text-sub);
+}
+
 .detail-section {
   margin-bottom: 16px;
   padding-bottom: 16px;

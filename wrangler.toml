@@ -7,7 +7,11 @@ binding      = "DB"
 database_name = "cc-pastor-dir-auth"
 database_id  = "4f1bf013-7023-4281-b04a-9e08dcfc0a5f"
 
+[[r2_buckets]]
+binding     = "DISASTER_PHOTOS"
+bucket_name = "cc-pastor-dir-disaster-photos"
+
 [vars]
 # Set GOOGLE_CLIENT_ID here (non-secret). Secrets go via: wrangler secret put
-# GOOGLE_CLIENT_SECRET, JWT_SECRET, ADMIN_EMAILS
+# GOOGLE_CLIENT_SECRET, JWT_SECRET, ADMIN_EMAILS, RESEND_API_KEY
 GOOGLE_CLIENT_ID = "735520241819-vjg846eaqsagtk3qtm5ul2alq6dgi9q0.apps.googleusercontent.com"
