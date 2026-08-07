@@ -1,0 +1,25 @@
+name = "cc-pastor-dir"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "./public"
+
+[[d1_databases]]
+binding      = "DB"
+database_name = "cc-pastor-dir-auth"
+database_id  = "<YOUR_D1_DATABASE_ID>"
+
+[[r2_buckets]]
+binding     = "DISASTER_PHOTOS"
+bucket_name = "<YOUR_DISASTER_PHOTOS_BUCKET>"
+
+[[r2_buckets]]
+binding     = "PASTOR_PHOTOS"
+bucket_name = "<YOUR_PASTOR_PHOTOS_BUCKET>"
+
+[vars]
+# Set GOOGLE_CLIENT_ID here (non-secret). Secrets go via: wrangler secret put
+# GOOGLE_CLIENT_SECRET, JWT_SECRET, ADMIN_EMAILS, RESEND_API_KEY
+GOOGLE_CLIENT_ID = "<YOUR_GOOGLE_CLIENT_ID>"
+
+# Copy this file to wrangler.toml (gitignored) and fill in real values for
+# local dev. Production/preview bindings are managed in the Cloudflare
+# dashboard (Pages project > Settings > Bindings), not in this repo.

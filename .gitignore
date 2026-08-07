@@ -1,6 +1,8 @@
 .DS_Store
 .wrangler/
 node_modules/
+wrangler.toml
+sync-worker/wrangler.toml
 GoogleClientID.rtf
 data/
 conference-church-scrape/
