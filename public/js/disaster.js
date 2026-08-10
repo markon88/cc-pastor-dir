@@ -463,14 +463,12 @@ function wireIncidentClose(container) {
   });
 }
 
-// ── Standing county-readiness editor (always visible, not incident-gated) ───
-// Called from detail.js on the church detail page.
-export async function renderCountyReadiness(container, churchName) {
-  if (!(lastActive.moduleEnabled || lastActive.canManage)) return;
-  const section = document.createElement('div');
-  section.className = 'detail-section';
+// ── County response coverage (nested inside the preparedness section, only
+// shown once the preparedness wizard has been started) ─────────────────────
+function renderCountyReadiness(el, churchName) {
+  const section = el;
   section.innerHTML = `
-    <div class="detail-label">Disaster Readiness</div>
+    <div class="detail-label" style="margin-top:16px;">Where We Can Help (Counties)</div>
     <div id="dis-county-list"><p class="item-sub">Loading…</p></div>
     <div class="admin-add-row">
       <input type="text" id="dis-county-name" class="search-input" placeholder="County" autocomplete="off">
@@ -485,7 +483,6 @@ export async function renderCountyReadiness(container, churchName) {
       <button id="dis-county-add" class="support-btn">Add</button>
     </div>
   `;
-  container.appendChild(section);
 
   const listEl = section.querySelector('#dis-county-list');
   const load = async () => {
@@ -663,8 +660,12 @@ function renderPrepSummary(section, churchName, answers) {
     <div class="admin-add-row">
       <button id="dis-prep-edit" class="support-btn">Edit Answers</button>
     </div>
+    <div id="dis-county-wrap"></div>
   `;
   section.querySelector('#dis-prep-edit').addEventListener('click', () => renderPrepWizard(section, churchName, answers, 0));
+  // Once the wizard's been started, fold county-level response coverage
+  // into the same card rather than showing it as its own separate section.
+  renderCountyReadiness(section.querySelector('#dis-county-wrap'), churchName);
 }
 
 function nextPrepStepIndex(answers, fromIndex) {

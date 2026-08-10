@@ -1,5 +1,5 @@
 import { generateVCard } from './contacts.js';
-import { renderCountyReadiness, renderPreparedness } from './disaster.js';
+import { renderPreparedness } from './disaster.js';
 
 function photoHtml(url, label) {
   return url
@@ -168,7 +168,6 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack, on
   `;
 
   renderPreparedness(container.querySelector('.detail-body'), church.name);
-  renderCountyReadiness(container.querySelector('.detail-body'), church.name);
 
   container.querySelector('#church-detail-back').addEventListener('click', onBack);
   if (addr) {
