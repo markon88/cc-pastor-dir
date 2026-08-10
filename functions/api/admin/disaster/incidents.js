@@ -1,4 +1,4 @@
-import { isAdmin } from '../../../_lib/auth.js';
+import { isAdmin, isStandingDisasterAdmin } from '../../../_lib/auth.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -7,7 +7,8 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 
 export async function onRequest({ request, env, data }) {
   const user = data.user;
-  if (!user || !isAdmin(user.email, env)) return json({ error: 'Forbidden' }, 403);
+  const allowed = user && (isAdmin(user.email, env) || await isStandingDisasterAdmin(user.email, env.DB));
+  if (!allowed) return json({ error: 'Forbidden' }, 403);
 
   const { method } = request;
 

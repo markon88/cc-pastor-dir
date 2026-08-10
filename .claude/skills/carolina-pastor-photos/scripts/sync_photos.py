@@ -1,4 +1,5 @@
 import json, os, re, subprocess, sys, tempfile, urllib.request
+import cv2
 
 """
 Diffs a freshly-scraped pastor-photos listing (JSON produced by the browser
@@ -69,20 +70,51 @@ def match_pastor(name, pastors):
             best, best_score = p, score
     return (best, best_score) if best_score >= 2 else (None, best_score)
 
+FACE_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+
+# Where the detected face center should land vertically in the square crop,
+# as a fraction of the crop side from the top. 0.5 = dead center, lower
+# values push the face up so there's more room below for shoulders/chest.
+FACE_VERTICAL_RATIO = 0.38
+
+def find_face_box(src_path):
+    """Returns (cx, cy, side) for the largest detected face, scaled up into a
+    generous square crop region, or None if no face is found."""
+    img = cv2.imread(src_path)
+    if img is None:
+        return None
+    h, w = img.shape[:2]
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    faces = FACE_CASCADE.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(60, 60))
+    if len(faces) == 0:
+        return None
+    # Largest face wins (headshots occasionally pick up a face in the background).
+    fx, fy, fw, fh = max(faces, key=lambda f: f[2] * f[3])
+    cx, cy = fx + fw / 2, fy + fh / 2
+    # Crop region ~2.6x the face box so shoulders/hair fit.
+    side = min(max(fw, fh) * 2.6, w, h)
+    return (cx, cy, side, w, h)
+
 def make_thumbnail(src_path, dest_path):
-    result = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", src_path],
-                             capture_output=True, text=True, check=True)
-    w = h = None
-    for line in result.stdout.splitlines():
-        line = line.strip()
-        if line.startswith("pixelWidth:"): w = int(line.split(":")[1])
-        if line.startswith("pixelHeight:"): h = int(line.split(":")[1])
-    side = min(w, h)
+    img = cv2.imread(src_path)
+    h, w = img.shape[:2]
+    box = find_face_box(src_path)
+
+    if box:
+        cx, cy, side, _, _ = box
+        side = min(side, w, h)
+        x = int(min(max(cx - side / 2, 0), w - side))
+        y = int(min(max(cy - side * FACE_VERTICAL_RATIO, 0), h - side))
+        side = int(side)
+    else:
+        side = min(w, h)
+        x, y = (w - side) // 2, (h - side) // 2
+
+    cropped_img = img[y:y + side, x:x + side]
     with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
         cropped = tmp.name
-    subprocess.run(["sips", "-s", "format", "jpeg", "-c", str(side), str(side), src_path, "--out", cropped],
-                    capture_output=True, text=True, check=True)
-    subprocess.run(["sips", "-Z", "200", cropped, "--out", dest_path],
+    cv2.imwrite(cropped, cropped_img)
+    subprocess.run(["sips", "-s", "format", "jpeg", "-Z", "200", cropped, "--out", dest_path],
                     capture_output=True, text=True, check=True)
     os.remove(cropped)
 

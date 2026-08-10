@@ -83,6 +83,18 @@ export async function isDisasterAdmin(email, db, incidentId) {
   return !!row;
 }
 
+// Standing (permanent) disaster-module role — full disaster access across
+// every incident, granted by a true admin via /api/admin/disaster/role-admins.
+// Distinct from isDisasterAdmin() above, which only lasts as long as one
+// active incident.
+export async function isStandingDisasterAdmin(email, db) {
+  if (!db) return false;
+  const row = await db.prepare(
+    'SELECT 1 FROM disaster_role_admins WHERE email = ? AND revoked_at IS NULL'
+  ).bind(email.toLowerCase()).first();
+  return !!row;
+}
+
 // A logged-in user's directory identity may differ from their login email
 // (see allowed_emails.directory_email). Resolve to whichever email actually
 // appears on the pastors row.

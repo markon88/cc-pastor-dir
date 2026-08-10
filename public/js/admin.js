@@ -53,6 +53,23 @@ export function renderAdminView(container) {
       </div>
 
       <div class="support-section">
+        <div class="support-section-title">App Modules</div>
+        <p class="support-section-desc">Turn entire tabs/sections on or off without a deploy.</p>
+        <div id="admin-module-disaster"></div>
+        <div id="admin-module-volunteers"></div>
+      </div>
+
+      <div class="support-section">
+        <div class="support-section-title">Disaster Admins</div>
+        <p class="support-section-desc">Standing, cross-incident access to the Disaster tab — start/close incidents, deputize per-incident helpers, edit the coordinator contact, view/edit all statuses. No access to the rest of this admin panel.</p>
+        <div class="admin-add-row">
+          <input type="email" id="admin-disaster-email-input" class="search-input" placeholder="name@example.com" autocomplete="off">
+          <button id="admin-disaster-add-btn" class="support-btn">Grant</button>
+        </div>
+        <div id="admin-disaster-list"><p class="support-section-desc">Loading…</p></div>
+      </div>
+
+      <div class="support-section">
         <div class="support-section-title">Dark Counties</div>
         <p class="support-section-desc">NC/SC counties with no church on record, derived from geocoded church addresses. Churches missing a county (bad/incomplete address) are listed separately below.</p>
         <div id="admin-dark-counties"><p class="support-section-desc">Loading…</p></div>
@@ -65,10 +82,134 @@ export function renderAdminView(container) {
     if (e.key === 'Enter') addEmail();
   });
 
+  document.getElementById('admin-disaster-add-btn').addEventListener('click', () => addDisasterAdmin());
+  document.getElementById('admin-disaster-email-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addDisasterAdmin();
+  });
+
   loadActivity();
   loadAllowedEmails();
   loadSyncLog();
   loadDarkCounties();
+  loadDisasterAdmins();
+
+  loadModuleToggle({
+    el: document.getElementById('admin-module-disaster'),
+    endpoint: '/api/disaster/module-status',
+    title: 'Disaster Response',
+    offDesc: 'Only admins and standing disaster admins can see the Disaster tab and church-level disaster sections. Turn on once fully deployed and ready.',
+  });
+  loadModuleToggle({
+    el: document.getElementById('admin-module-volunteers'),
+    endpoint: '/api/volunteers/module-status',
+    title: 'VLP / VLL Directory',
+    offDesc: 'The VLP/VLL tab and church-detail section are hidden from everyone.',
+  });
+}
+
+// Shared on/off switch renderer for any DB-backed module flag — pass the
+// module's own GET/POST endpoint (see functions/api/*/module-status.js).
+async function loadModuleToggle({ el, endpoint, title, offDesc }) {
+  if (!el) return;
+  el.innerHTML = `<div class="admin-add-row"><p class="support-section-desc">Loading ${esc(title)}…</p></div>`;
+
+  const res = await fetch(endpoint, { cache: 'no-store' });
+  const { enabled } = res.ok ? await res.json() : { enabled: false };
+
+  el.innerHTML = `
+    <div class="admin-add-row" style="align-items:center;">
+      <div class="item-name" style="flex:1;">
+        ${esc(title)}
+        <div class="item-sub">${enabled ? 'Currently ON — visible to everyone' : `Currently OFF — admins only. ${esc(offDesc)}`}</div>
+      </div>
+      <button class="admin-module-toggle-btn support-btn" style="background:${enabled ? 'var(--red)' : 'var(--primary)'}">
+        ${enabled ? 'Turn Off' : 'Turn On'}
+      </button>
+    </div>
+  `;
+
+  el.querySelector('.admin-module-toggle-btn').addEventListener('click', async () => {
+    const nextEnabled = !enabled;
+    if (nextEnabled && !confirm(`Turn ${title} on for everyone?`)) return;
+    const btn = el.querySelector('.admin-module-toggle-btn');
+    btn.disabled = true;
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled: nextEnabled }),
+    });
+    if (res.ok) {
+      loadModuleToggle({ el, endpoint, title, offDesc });
+    } else {
+      btn.disabled = false;
+      alert('Failed to update — please try again.');
+    }
+  });
+}
+
+async function addDisasterAdmin() {
+  const input = document.getElementById('admin-disaster-email-input');
+  const email = input.value.trim();
+  if (!email || !email.includes('@')) return;
+
+  const btn = document.getElementById('admin-disaster-add-btn');
+  btn.disabled = true;
+  const res = await fetch('/api/admin/disaster/role-admins', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  btn.disabled = false;
+
+  if (res.ok) {
+    input.value = '';
+    loadDisasterAdmins();
+  } else {
+    alert('Failed to grant access — please try again.');
+  }
+}
+
+async function loadDisasterAdmins() {
+  const list = document.getElementById('admin-disaster-list');
+  if (!list) return;
+
+  const res = await fetch('/api/admin/disaster/role-admins');
+  if (!res.ok) {
+    list.innerHTML = '<p class="support-section-desc" style="color:var(--red)">Failed to load list.</p>';
+    return;
+  }
+
+  const rows = await res.json();
+  if (!rows.length) {
+    list.innerHTML = '<p class="support-section-desc">None yet.</p>';
+    return;
+  }
+
+  list.innerHTML = rows.map(r => `
+    <div class="admin-email-row" data-email="${esc(r.email)}">
+      <div class="admin-email-info">
+        <div class="item-name">${esc(r.email)}</div>
+        <div class="item-sub">Granted by ${esc(r.granted_by)}</div>
+      </div>
+      <div class="admin-email-actions">
+        <button class="admin-delete-btn admin-disaster-revoke" data-email="${esc(r.email)}">Revoke</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.admin-disaster-revoke').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm(`Revoke disaster admin access for ${btn.dataset.email}?`)) return;
+      btn.disabled = true;
+      const res = await fetch(`/api/admin/disaster/role-admins?email=${encodeURIComponent(btn.dataset.email)}`, { method: 'DELETE' });
+      if (res.ok) {
+        loadDisasterAdmins();
+      } else {
+        btn.disabled = false;
+        alert('Failed to revoke — please try again.');
+      }
+    });
+  });
 }
 
 async function loadSyncLog() {

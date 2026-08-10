@@ -1,5 +1,5 @@
 import { savePastors, getPastors, getStoredVersion, saveVersion, saveAmaGroups, getAmaGroups, saveChurchAddresses, getChurchAddresses, saveAmaSchedule, getAmaSchedule, saveVolunteers, getVolunteers } from './db.js';
-import { VERSION as APP_VERSION, VOLUNTEERS_FEATURE_ENABLED } from './version.js';
+import { VERSION as APP_VERSION } from './version.js';
 import { initPastorsView, renderPastorsView } from './pastors.js';
 import { buildChurchList, renderChurchesView, getChurchByName } from './churches.js';
 import { initAmaView, renderAmaView, renderAmaGroupDetail } from './ama.js';
@@ -17,6 +17,7 @@ let pastors = [];
 let amaGroups = [];
 let detailStack = [];
 let currentUser = null;
+let volunteersEnabled = true;
 
 // ── DOM ───────────────────────────────────────────────────────────────────────
 const mainContent = document.getElementById('main-content');
@@ -43,9 +44,7 @@ async function init() {
   if (currentUser.isAdmin) {
     document.querySelector('[data-tab="admin"]').style.display = 'flex';
   }
-  if (VOLUNTEERS_FEATURE_ENABLED) {
-    document.querySelector('[data-tab="volunteers"]').style.display = 'flex';
-  }
+  await refreshVolunteersTab();
 
   // Register service worker and auto-reload when a new version takes over
   if ('serviceWorker' in navigator) {
@@ -75,7 +74,7 @@ async function init() {
   checkAmaBanner(document.getElementById('banners'), currentUser, pastors);
 
   initPastorsView(pastors);
-  buildChurchList(pastors, data.churchAddresses, VOLUNTEERS_FEATURE_ENABLED ? (data.volunteers ?? []) : []);
+  buildChurchList(pastors, data.churchAddresses, volunteersEnabled ? (data.volunteers ?? []) : []);
   initAmaView(amaGroups, pastors);
   initVolunteersView(data.volunteers ?? []);
   initDisaster(pastors, currentUser);
@@ -85,9 +84,10 @@ async function init() {
   checkForUpdates();
   refreshDisasterTab();
 
-  // Re-poll periodically so the Disaster tab appears/disappears live without
-  // requiring a reload — an incident can start or end while the app is open.
+  // Re-poll periodically so tabs gated by an admin-toggleable module flag
+  // appear/disappear live without requiring a reload.
   setInterval(refreshDisasterTab, 5 * 60_000);
+  setInterval(refreshVolunteersTab, 5 * 60_000);
 
   // PWAs often resume an existing JS context instead of reloading when brought
   // back to the foreground, so the once-on-load check above isn't enough —
@@ -100,15 +100,24 @@ async function init() {
     lastCheck = Date.now();
     checkForUpdates();
     refreshDisasterTab();
+    refreshVolunteersTab();
   });
 }
 
+async function refreshVolunteersTab() {
+  const res = await fetch('/api/volunteers/module-status', { cache: 'no-store' }).catch(() => null);
+  volunteersEnabled = res && res.ok ? (await res.json()).enabled : true;
+  document.querySelector('[data-tab="volunteers"]').style.display = volunteersEnabled ? 'flex' : 'none';
+}
+
 async function refreshDisasterTab() {
-  const { active, isSimulation } = await checkDisasterActive();
+  const { active, isSimulation, moduleEnabled, canManage } = await checkDisasterActive();
   const tabBtn = document.querySelector('[data-tab="disaster"]');
-  // Admins always see the tab (to start an incident); everyone else only
-  // sees it while one is active.
-  tabBtn.style.display = (active || currentUser?.isAdmin) ? 'flex' : 'none';
+  // Whole module has a master on/off switch (Admin tab, DB-backed): while
+  // off, only admins and standing disaster admins can see the tab at all
+  // (to configure/test before go-live) — everyone else sees nothing,
+  // active incident or not.
+  tabBtn.style.display = (canManage || (moduleEnabled && active)) ? 'flex' : 'none';
   tabBtn.querySelector('span:last-child').textContent = active && isSimulation ? 'Disaster (SIM)' : 'Disaster';
   if (activeTab === 'disaster') renderTab('disaster');
 }
@@ -190,7 +199,7 @@ export async function checkForUpdates() {
     amaGroups = data.amaGroups;
     initSchedule(data.amaSchedule);
     initPastorsView(pastors);
-    buildChurchList(pastors, data.churchAddresses, VOLUNTEERS_FEATURE_ENABLED ? (data.volunteers ?? []) : []);
+    buildChurchList(pastors, data.churchAddresses, volunteersEnabled ? (data.volunteers ?? []) : []);
     initAmaView(amaGroups, pastors);
     initVolunteersView(data.volunteers ?? []);
     if (detailStack.length === 0) renderTab(activeTab);
@@ -246,23 +255,27 @@ function showPastorDetail(id) {
     const group = amaGroups.find(g => g.name === name);
     if (group) showAmaGroupDetail(group.id);
   });
+  mainContent.scrollTop = 0;
 }
 
 function showChurchDetail(name) {
   const church = getChurchByName(name);
   detailStack.push({ type: 'church', name });
   renderChurchDetail(mainContent, church, id => showPastorDetail(id), goBack, id => showVolunteerDetail(id));
+  mainContent.scrollTop = 0;
 }
 
 function showVolunteerDetail(id) {
   const volunteer = getVolunteerById(id);
   detailStack.push({ type: 'volunteer', id });
   renderVolunteerDetail(mainContent, volunteer, goBack, name => showChurchDetail(name));
+  mainContent.scrollTop = 0;
 }
 
 function showAmaGroupDetail(groupId) {
   detailStack.push({ type: 'ama-group', id: groupId });
   renderAmaGroupDetail(mainContent, groupId, id => showPastorDetail(id), goBack);
+  mainContent.scrollTop = 0;
 }
 
 function goBack() {

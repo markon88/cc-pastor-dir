@@ -1,4 +1,4 @@
-import { getSessionFromRequest, signJWT, isAdmin, sessionCookieHeader } from '../../_lib/auth.js';
+import { getSessionFromRequest, signJWT, isAdmin, isStandingDisasterAdmin, sessionCookieHeader } from '../../_lib/auth.js';
 
 function detectPlatform(ua) {
   if (!ua) return null;
@@ -57,6 +57,7 @@ export async function onRequestGet({ request, env }) {
     name:           user.name,
     picture:        user.picture,
     isAdmin:        isAdmin(user.email, env),
+    isDisasterAdmin: env.DB ? await isStandingDisasterAdmin(user.email, env.DB) : false,
     directoryEmail: mapping?.directory_email ?? null,
   }), { headers });
 }

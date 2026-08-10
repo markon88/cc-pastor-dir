@@ -1,4 +1,4 @@
-import { isAdmin } from '../../../_lib/auth.js';
+import { isAdmin, isStandingDisasterAdmin } from '../../../_lib/auth.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -6,11 +6,13 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 });
 
 // Grant/revoke temporary, incident-scoped disaster admins. Only permanent
-// admins (ADMIN_EMAILS) may grant — a disaster admin cannot chain-grant
-// further admins, to avoid uncontrolled privilege escalation mid-incident.
+// admins (ADMIN_EMAILS) or standing disaster-role admins may grant — a
+// temporary incident-scoped admin cannot chain-grant further admins, to
+// avoid uncontrolled privilege escalation mid-incident.
 export async function onRequest({ request, env, data }) {
   const user = data.user;
-  if (!user || !isAdmin(user.email, env)) return json({ error: 'Forbidden' }, 403);
+  const allowed = user && (isAdmin(user.email, env) || await isStandingDisasterAdmin(user.email, env.DB));
+  if (!allowed) return json({ error: 'Forbidden' }, 403);
 
   const { method } = request;
 
