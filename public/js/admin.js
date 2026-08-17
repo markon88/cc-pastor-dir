@@ -15,18 +15,115 @@ function timeAgo(isoStr) {
   return new Date(isoStr + 'Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+const ADMIN_SECTIONS = {
+  activity: {
+    title: 'User Activity',
+    desc: "Who has opened the app, what version they're running, and what platform they're on.",
+  },
+  email: {
+    title: 'Email Access',
+    desc: 'Grant or manage which email addresses can sign in.',
+  },
+  sync: {
+    title: 'eAdventist Sync Log',
+    desc: 'Runs automatically Tuesday & Friday at 4 AM ET.',
+  },
+  disaster: {
+    title: 'Disaster Tools',
+    desc: 'Module on/off switch and standing disaster admins.',
+  },
+  'dark-counties': {
+    title: 'Dark Counties',
+    desc: 'NC/SC counties with no church on record.',
+  },
+};
+
 export function renderAdminView(container) {
   container.innerHTML = `
     <div class="list-header">
       <div class="view-title">Manage Access</div>
     </div>
     <div class="support-body">
-      <div class="support-section">
-        <div class="support-section-title">User Activity</div>
-        <p class="support-section-desc">Who has opened the app, what version they're running, and what platform they're on.</p>
-        <div id="admin-activity"><p class="support-section-desc">Loading…</p></div>
+      <div class="support-section" style="gap:0;">
+        ${Object.entries(ADMIN_SECTIONS).map(([key, s]) => `
+          <div class="list-item" data-admin-section="${key}" style="flex-direction:row; align-items:center; justify-content:space-between;">
+            <div>
+              <div class="item-name">${esc(s.title)}</div>
+              <div class="item-sub">${esc(s.desc)}</div>
+            </div>
+            <span aria-hidden="true" style="color:var(--text-sub);">›</span>
+          </div>
+        `).join('')}
       </div>
 
+      <div class="support-section">
+        <div class="support-section-title">App Modules</div>
+        <div id="admin-module-volunteers"></div>
+      </div>
+    </div>
+  `;
+
+  container.querySelectorAll('[data-admin-section]').forEach(el => {
+    el.addEventListener('click', () => renderAdminDetail(container, el.dataset.adminSection));
+  });
+
+  loadModuleToggle({
+    el: document.getElementById('admin-module-volunteers'),
+    endpoint: '/api/volunteers/module-status',
+    title: 'VLP / VLL Directory',
+    offDesc: 'The VLP/VLL tab and church-detail section are hidden from everyone.',
+  });
+}
+
+function renderAdminDetail(container, section) {
+  const { title } = ADMIN_SECTIONS[section];
+  container.innerHTML = `
+    <div class="detail-header">
+      <button class="back-btn" id="admin-detail-back">← Back</button>
+      <h2 class="detail-title">${esc(title)}</h2>
+    </div>
+    <div class="support-body">${adminDetailBody(section)}</div>
+  `;
+
+  document.getElementById('admin-detail-back').addEventListener('click', () => renderAdminView(container));
+
+  if (section === 'activity') {
+    loadActivity();
+  } else if (section === 'email') {
+    document.getElementById('admin-add-btn').addEventListener('click', () => addEmail());
+    document.getElementById('admin-email-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addEmail();
+    });
+    loadAllowedEmails();
+  } else if (section === 'sync') {
+    loadSyncLog();
+  } else if (section === 'disaster') {
+    document.getElementById('admin-disaster-add-btn').addEventListener('click', () => addDisasterAdmin());
+    document.getElementById('admin-disaster-email-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addDisasterAdmin();
+    });
+    loadDisasterAdmins();
+    loadModuleToggle({
+      el: document.getElementById('admin-module-disaster'),
+      endpoint: '/api/disaster/module-status',
+      title: 'Disaster Response',
+      offDesc: 'Only admins and standing disaster admins can see the Disaster tab and church-level disaster sections. Turn on once fully deployed and ready.',
+    });
+  } else if (section === 'dark-counties') {
+    loadDarkCounties();
+  }
+}
+
+function adminDetailBody(section) {
+  if (section === 'activity') {
+    return `
+      <div class="support-section">
+        <div id="admin-activity"><p class="support-section-desc">Loading…</p></div>
+      </div>
+    `;
+  }
+  if (section === 'email') {
+    return `
       <div class="support-section">
         <div class="support-section-title">@carolinasda.org accounts</div>
         <p class="support-section-desc">All verified @carolinasda.org Google accounts are always allowed — no action needed.</p>
@@ -45,18 +142,22 @@ export function renderAdminView(container) {
         <div class="support-section-title">Explicitly allowed emails</div>
         <div id="admin-list"><p class="support-section-desc">Loading…</p></div>
       </div>
-
+    `;
+  }
+  if (section === 'sync') {
+    return `
       <div class="support-section">
-        <div class="support-section-title">eAdventist Sync Log</div>
-        <p class="support-section-desc">Runs automatically Tuesday & Friday at 4 AM ET. Items marked <strong>insert</strong> or <strong>unmatched</strong> need review.</p>
+        <p class="support-section-desc">Items marked <strong>insert</strong> or <strong>unmatched</strong> need review.</p>
         <div id="admin-sync-log"><p class="support-section-desc">Loading…</p></div>
       </div>
-
+    `;
+  }
+  if (section === 'disaster') {
+    return `
       <div class="support-section">
-        <div class="support-section-title">App Modules</div>
-        <p class="support-section-desc">Turn entire tabs/sections on or off without a deploy.</p>
+        <div class="support-section-title">Module Switch</div>
+        <p class="support-section-desc">Turn the whole Disaster tab and church-level disaster sections on or off without a deploy.</p>
         <div id="admin-module-disaster"></div>
-        <div id="admin-module-volunteers"></div>
       </div>
 
       <div class="support-section">
@@ -68,43 +169,17 @@ export function renderAdminView(container) {
         </div>
         <div id="admin-disaster-list"><p class="support-section-desc">Loading…</p></div>
       </div>
-
+    `;
+  }
+  if (section === 'dark-counties') {
+    return `
       <div class="support-section">
-        <div class="support-section-title">Dark Counties</div>
-        <p class="support-section-desc">NC/SC counties with no church on record, derived from geocoded church addresses. Churches missing a county (bad/incomplete address) are listed separately below.</p>
+        <p class="support-section-desc">Derived from geocoded church addresses. Churches missing a county (bad/incomplete address) are listed separately below.</p>
         <div id="admin-dark-counties"><p class="support-section-desc">Loading…</p></div>
       </div>
-    </div>
-  `;
-
-  document.getElementById('admin-add-btn').addEventListener('click', () => addEmail());
-  document.getElementById('admin-email-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addEmail();
-  });
-
-  document.getElementById('admin-disaster-add-btn').addEventListener('click', () => addDisasterAdmin());
-  document.getElementById('admin-disaster-email-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addDisasterAdmin();
-  });
-
-  loadActivity();
-  loadAllowedEmails();
-  loadSyncLog();
-  loadDarkCounties();
-  loadDisasterAdmins();
-
-  loadModuleToggle({
-    el: document.getElementById('admin-module-disaster'),
-    endpoint: '/api/disaster/module-status',
-    title: 'Disaster Response',
-    offDesc: 'Only admins and standing disaster admins can see the Disaster tab and church-level disaster sections. Turn on once fully deployed and ready.',
-  });
-  loadModuleToggle({
-    el: document.getElementById('admin-module-volunteers'),
-    endpoint: '/api/volunteers/module-status',
-    title: 'VLP / VLL Directory',
-    offDesc: 'The VLP/VLL tab and church-detail section are hidden from everyone.',
-  });
+    `;
+  }
+  return '';
 }
 
 // Shared on/off switch renderer for any DB-backed module flag — pass the
