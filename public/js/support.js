@@ -39,7 +39,7 @@ export function renderSupportView(container, user) {
       <div class="support-section">
         <div class="support-section-title">Update Your Directory Info</div>
         <p class="support-section-desc">Wrong number? New church? Just ask.</p>
-        <a href="mailto:pastorbentley@gmail.com?cc=hellopastormark@gmail.com&subject=Directory%20Update%20Request" class="support-btn">Request an Update</a>
+        <a href="mailto:hellopastormark@gmail.com?subject=Directory%20Update%20Request" class="support-btn">Request an Update</a>
       </div>
 
       <div class="support-section">
