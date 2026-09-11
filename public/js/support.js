@@ -21,8 +21,6 @@ export function renderSupportView(container, user) {
 
       ${accountSection}
 
-      <p class="support-tagline">A pastor who got left out built something to bring people together.</p>
-
       <div class="support-section">
         <div class="support-section-title">App Version</div>
         <p class="support-section-desc">Current version: <strong id="app-version">…</strong>. If the directory looks out of date, tap below to pull the latest version.</p>
@@ -50,6 +48,7 @@ export function renderSupportView(container, user) {
 
       <div class="support-section support-story">
         <div class="support-section-title">How This Got Started</div>
+        <p class="support-tagline">A pastor who got left out built something to bring people together.</p>
         <p>It started with an email I never got.</p>
         <p>My AMA had a meeting. Tony thought he'd added me. He had — just the other Mark. Turns out there are two of us in the group.</p>
         <p>No big deal. I tracked down the address the night before and showed up just fine. But on the drive home, a different problem nagged at me: I didn't actually know everyone in my own AMA group. If I'd tried to email them myself, I couldn't have done it.</p>
