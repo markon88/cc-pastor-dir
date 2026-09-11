@@ -36,6 +36,10 @@ const ADMIN_SECTIONS = {
     title: 'Dark Counties',
     desc: 'NC/SC counties with no church on record.',
   },
+  feedback: {
+    title: 'Feedback',
+    desc: 'Bug reports, feature requests, and data-update requests from the profile menu.',
+  },
 };
 
 export function renderAdminView(container) {
@@ -111,6 +115,8 @@ function renderAdminDetail(container, section) {
     });
   } else if (section === 'dark-counties') {
     loadDarkCounties();
+  } else if (section === 'feedback') {
+    loadFeedback();
   }
 }
 
@@ -176,6 +182,14 @@ function adminDetailBody(section) {
       <div class="support-section">
         <p class="support-section-desc">Derived from geocoded church addresses. Churches missing a county (bad/incomplete address) are listed separately below.</p>
         <div id="admin-dark-counties"><p class="support-section-desc">Loading…</p></div>
+      </div>
+    `;
+  }
+  if (section === 'feedback') {
+    return `
+      <div class="support-section">
+        <p class="support-section-desc">Most recent 200 reports, newest first. Also emailed as they come in when notifications are configured.</p>
+        <div id="admin-feedback"><p class="support-section-desc">Loading…</p></div>
       </div>
     `;
   }
@@ -363,6 +377,37 @@ async function loadDarkCounties() {
   ` : '';
 
   el.innerHTML = countyLists + missingHtml;
+}
+
+const FEEDBACK_TYPE_LABELS = { bug: 'Bug', feature: 'Feature', data: 'Data Update' };
+const FEEDBACK_TYPE_CLASS  = { bug: 'admin-sync-badge-error', feature: 'admin-sync-badge-ok', data: 'admin-sync-badge-warn' };
+
+async function loadFeedback() {
+  const el = document.getElementById('admin-feedback');
+  if (!el) return;
+
+  const res = await fetch('/api/feedback');
+  if (!res.ok) {
+    el.innerHTML = '<p class="support-section-desc" style="color:var(--red)">Failed to load feedback.</p>';
+    return;
+  }
+
+  const { reports } = await res.json();
+  if (!reports.length) {
+    el.innerHTML = '<p class="support-section-desc">No reports yet.</p>';
+    return;
+  }
+
+  el.innerHTML = reports.map(r => `
+    <div class="admin-activity-row">
+      <div class="admin-activity-info">
+        <div class="item-name">${esc(r.submitted_name || r.submitted_by)}${r.urgent ? ' <span class="tag" style="background:var(--red);color:white;">Urgent</span>' : ''}</div>
+        <div class="item-sub">${esc(r.message)}</div>
+        <div class="item-sub">${esc(r.submitted_by)} · ${esc(timeAgo(r.created_at))}${r.page ? ` · ${esc(r.page)}` : ''}</div>
+      </div>
+      <span class="admin-version-badge ${FEEDBACK_TYPE_CLASS[r.type] ?? ''}">${esc(FEEDBACK_TYPE_LABELS[r.type] ?? r.type)}</span>
+    </div>
+  `).join('');
 }
 
 async function loadActivity() {

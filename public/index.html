@@ -45,8 +45,14 @@
           <button class="profile-menu-item" data-menu-tab="officedirectory" role="menuitem">
             <span class="tab-icon">🏢</span> Conference Office
           </button>
+          <button class="profile-menu-item" data-menu-action="feedback" role="menuitem">
+            <span class="tab-icon">📝</span> Report an Issue
+          </button>
           <button class="profile-menu-item" data-menu-tab="support" role="menuitem">
             <span class="tab-icon">ℹ️</span> Support
+          </button>
+          <button class="profile-menu-item" data-menu-action="logout" role="menuitem">
+            <span class="tab-icon">🚪</span> Sign Out
           </button>
         </div>
       </div>
@@ -90,6 +96,34 @@
         <strong>Conference Office</strong> directory and <strong>My AMA Schedule</strong>.
       </p>
       <button id="announcement-dismiss" class="announcement-btn">Got it</button>
+    </div>
+  </div>
+
+  <div id="feedback-overlay" class="announcement-overlay hidden">
+    <div class="announcement-card feedback-card">
+      <div id="feedback-form-state">
+        <div class="announcement-title">Report an Issue</div>
+        <p class="announcement-body">Bug reports, feature ideas, and data-update requests all go here.</p>
+        <div class="sort-toggle sort-toggle-3 feedback-type-toggle">
+          <button type="button" class="sort-btn active" data-type="bug">Bug</button>
+          <button type="button" class="sort-btn" data-type="feature">Feature</button>
+          <button type="button" class="sort-btn" data-type="data">Data Update</button>
+        </div>
+        <textarea id="feedback-message" class="feedback-textarea" rows="4" placeholder="What happened? Or what would you like to see?"></textarea>
+        <label class="feedback-urgent-label">
+          <input type="checkbox" id="feedback-urgent"> This is urgent / blocking
+        </label>
+        <p id="feedback-error" class="login-error hidden"></p>
+        <div class="feedback-actions">
+          <button id="feedback-cancel" class="support-btn support-btn-alt" style="flex:1">Cancel</button>
+          <button id="feedback-submit" class="support-btn" style="flex:1">Submit</button>
+        </div>
+      </div>
+      <div id="feedback-success-state" class="hidden" style="text-align:center;">
+        <div class="announcement-title">Thanks!</div>
+        <p class="announcement-body">Your report was submitted.</p>
+        <button id="feedback-done" class="announcement-btn">Done</button>
+      </div>
     </div>
   </div>
 

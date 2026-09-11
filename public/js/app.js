@@ -8,6 +8,7 @@ import { renderPastorDetail, renderChurchDetail, renderVolunteerDetail } from '.
 import { renderSupportView } from './support.js';
 import { renderOfficeDirectoryView } from './officedirectory.js';
 import { renderMyAmaScheduleView } from './myamaschedule.js';
+import { setupFeedbackModal } from './feedback.js';
 import { renderAdminView } from './admin.js';
 import { checkAmaBanner, initSchedule } from './ama-meetings.js';
 import { initDisaster, checkDisasterActive, renderDisasterView } from './disaster.js';
@@ -20,6 +21,7 @@ let amaGroups = [];
 let detailStack = [];
 let currentUser = null;
 let volunteersEnabled = true;
+let feedbackModal = null;
 
 // ── DOM ───────────────────────────────────────────────────────────────────────
 const mainContent = document.getElementById('main-content');
@@ -81,6 +83,7 @@ async function init() {
   initVolunteersView(data.volunteers ?? []);
   initDisaster(pastors, currentUser);
 
+  feedbackModal = setupFeedbackModal(() => activeTab);
   setupTabs();
   renderTab('pastors');
   checkForUpdates();
@@ -131,19 +134,14 @@ function getMyPastorRecord() {
   return pastors.find(p => p.email?.toLowerCase() === lookupEmail) ?? null;
 }
 
-// ── One-time announcements ────────────────────────────────────────────────────
-const ANNOUNCEMENT_KEY = 'announcement:profile-menu-2026-09';
-
+// ── Announcements ────────────────────────────────────────────────────────────
+// Shows every time the app is opened (login or a fresh/reloaded session) —
+// deliberately not dismissed-forever, since `init()` covers both cases.
 function showProfileMenuAnnouncement() {
-  try {
-    if (localStorage.getItem(ANNOUNCEMENT_KEY)) return;
-  } catch { /* private browsing / storage blocked — just show it */ }
-
   const overlay = document.getElementById('announcement-overlay');
   overlay.classList.remove('hidden');
 
   document.getElementById('announcement-dismiss').addEventListener('click', () => {
-    try { localStorage.setItem(ANNOUNCEMENT_KEY, '1'); } catch { /* ignore */ }
     overlay.classList.add('hidden');
   }, { once: true });
 }
@@ -275,6 +273,17 @@ function setupProfileMenu() {
   profileDropdown.querySelectorAll('.profile-menu-item').forEach(item => {
     item.addEventListener('click', () => {
       closeMenu();
+
+      const action = item.dataset.menuAction;
+      if (action === 'feedback') {
+        feedbackModal.open();
+        return;
+      }
+      if (action === 'logout') {
+        fetch('/api/auth/logout', { method: 'POST' }).catch(() => {}).finally(() => window.location.reload());
+        return;
+      }
+
       const tab = item.dataset.menuTab;
       if (tab === activeTab && detailStack.length === 0) return;
       detailStack = [];

@@ -9,7 +9,6 @@ export function renderSupportView(container, user) {
     <div class="support-section">
       <div class="support-section-title">Your Account</div>
       <p class="support-section-desc">Signed in as <strong>${esc(user.email)}</strong></p>
-      <button id="logout-btn" class="support-btn support-btn-alt">Sign Out</button>
     </div>
   ` : '';
 
@@ -35,12 +34,6 @@ export function renderSupportView(container, user) {
       </div>
 
       <div class="support-section">
-        <div class="support-section-title">Update Your Directory Info</div>
-        <p class="support-section-desc">Wrong number? New church? Just ask.</p>
-        <a href="mailto:hellopastormark@gmail.com?subject=Directory%20Update%20Request" class="support-btn">Request an Update</a>
-      </div>
-
-      <div class="support-section">
         <div class="support-section-title">Buy Me Some Thai Food</div>
         <p class="support-section-desc">If this app has saved you a phone call or two, I'm not going to stop you.</p>
         <a href="https://buy.stripe.com/9B64gz8NIbca9hO5gk2kw02" class="support-btn support-btn-thai">Buy Me Some Thai Food</a>
@@ -61,13 +54,6 @@ export function renderSupportView(container, user) {
   `;
 
   document.getElementById('update-app-btn').addEventListener('click', checkForAppUpdate);
-
-  if (user) {
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
-      window.location.reload();
-    });
-  }
 
   // Read the active cache name from the browser to get the true installed version
   caches.keys().then(keys => {

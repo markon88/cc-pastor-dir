@@ -158,6 +158,35 @@ html, body {
   cursor: pointer;
 }
 
+/* ── Feedback Modal ─────────────────────────────────────────────────────── */
+.feedback-card { text-align: left; max-width: 380px; }
+.feedback-card .announcement-title { text-align: center; }
+.feedback-card .announcement-body { text-align: center; }
+.feedback-type-toggle { margin-bottom: 14px; }
+
+.feedback-textarea {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 12px;
+}
+
+.feedback-urgent-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-sub);
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.feedback-actions { display: flex; gap: 8px; }
+
 #banners { flex-shrink: 0; }
 
 #main-content {
