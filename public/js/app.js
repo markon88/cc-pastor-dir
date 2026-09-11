@@ -7,6 +7,7 @@ import { initVolunteersView, renderVolunteersView, getVolunteerById } from './vo
 import { renderPastorDetail, renderChurchDetail, renderVolunteerDetail } from './detail.js';
 import { renderSupportView } from './support.js';
 import { renderOfficeDirectoryView } from './officedirectory.js';
+import { renderMyAmaScheduleView } from './myamaschedule.js';
 import { renderAdminView } from './admin.js';
 import { checkAmaBanner, initSchedule } from './ama-meetings.js';
 import { initDisaster, checkDisasterActive, renderDisasterView } from './disaster.js';
@@ -121,6 +122,12 @@ async function refreshDisasterTab() {
   tabBtn.style.display = (canManage || (moduleEnabled && active)) ? 'flex' : 'none';
   tabBtn.querySelector('span:last-child').textContent = active && isSimulation ? 'Disaster (SIM)' : 'Disaster';
   if (activeTab === 'disaster') renderTab('disaster');
+}
+
+function getMyPastorRecord() {
+  const lookupEmail = (currentUser?.directoryEmail ?? currentUser?.email)?.toLowerCase();
+  if (!lookupEmail) return null;
+  return pastors.find(p => p.email?.toLowerCase() === lookupEmail) ?? null;
 }
 
 function showLoginScreen() {
@@ -278,6 +285,8 @@ function renderTab(tab) {
     renderSupportView(mainContent, currentUser);
   } else if (tab === 'officedirectory') {
     renderOfficeDirectoryView(mainContent);
+  } else if (tab === 'myama') {
+    renderMyAmaScheduleView(mainContent, getMyPastorRecord());
   } else if (tab === 'admin') {
     renderAdminView(mainContent);
   } else if (tab === 'disaster') {
