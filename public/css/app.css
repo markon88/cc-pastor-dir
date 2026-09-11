@@ -457,6 +457,21 @@ html, body {
   border-radius: 8px;
 }
 
+.office-address-block {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-sub);
+  line-height: 1.5;
+}
+
+.office-address-block a { color: var(--accent); text-decoration: none; }
+
+.office-directory-tabs {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
 .tag-ext { background: var(--bg); color: var(--text-sub); }
 
 .office-updated {

@@ -93,7 +93,16 @@ function telLink(number) {
 export function renderOfficeDirectoryView(container) {
   container.innerHTML = `
     <div class="list-header">
-      <div class="view-title">Conference Office Directory</div>
+      <div class="view-title">Conference Office</div>
+    </div>
+    <div class="office-address-block">
+      <div>2701 East WT Harris Blvd, Charlotte, NC 28213</div>
+      <div>PO Box 44270, Charlotte, NC 28215</div>
+      <div>Phone: ${telLink('704-596-3200')} &middot; Fax: 704-596-5775</div>
+    </div>
+    <div class="sort-toggle office-directory-tabs">
+      <button class="sort-btn active" data-tab="personnel">Office Directory</button>
+      <button class="sort-btn" data-tab="holidays">Holiday Schedule</button>
     </div>
     <div class="support-body">
       <div class="banner banner-update office-directory-disclaimer">
@@ -101,7 +110,7 @@ export function renderOfficeDirectoryView(container) {
         If something's out of date, use the "Request an Update" link in Support.
       </div>
 
-      <div class="support-section">
+      <div id="office-personnel-panel" class="support-section">
         <div class="support-section-title">Office Personnel <span class="office-updated">Updated ${esc(PERSONNEL_UPDATED)}</span></div>
         <div class="item-list office-personnel-list">
           ${OFFICE_PERSONNEL.map(p => `
@@ -118,7 +127,7 @@ export function renderOfficeDirectoryView(container) {
         </div>
       </div>
 
-      <div class="support-section">
+      <div id="office-holidays-panel" class="support-section hidden">
         <div class="support-section-title">2027 Office Holiday Schedule</div>
         <p class="support-section-desc">Applies to pastors, 12-month teachers, and Nosoca Pines Ranch staff.</p>
         <table class="office-holiday-table">
@@ -132,4 +141,15 @@ export function renderOfficeDirectoryView(container) {
       </div>
     </div>
   `;
+
+  const tabs = container.querySelectorAll('.office-directory-tabs .sort-btn');
+  tabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const showHolidays = btn.dataset.tab === 'holidays';
+      container.querySelector('#office-personnel-panel').classList.toggle('hidden', showHolidays);
+      container.querySelector('#office-holidays-panel').classList.toggle('hidden', !showHolidays);
+    });
+  });
 }
