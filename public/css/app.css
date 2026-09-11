@@ -107,6 +107,15 @@ html, body {
 .profile-menu-item:hover { background: var(--bg); }
 .profile-menu-item + .profile-menu-item { border-top: 1px solid var(--border); }
 
+.profile-account-info {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--text-sub);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  word-break: break-all;
+}
+
 /* ── Announcement Popup ─────────────────────────────────────────────────── */
 .announcement-overlay {
   position: fixed;

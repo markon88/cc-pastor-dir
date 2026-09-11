@@ -1,24 +1,11 @@
 import { checkForUpdates } from './app.js';
 
-function esc(str) {
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-export function renderSupportView(container, user) {
-  const accountSection = user ? `
-    <div class="support-section">
-      <div class="support-section-title">Your Account</div>
-      <p class="support-section-desc">Signed in as <strong>${esc(user.email)}</strong></p>
-    </div>
-  ` : '';
-
+export function renderSupportView(container) {
   container.innerHTML = `
     <div class="list-header">
       <div class="view-title">Support</div>
     </div>
     <div class="support-body">
-
-      ${accountSection}
 
       <div class="support-section">
         <div class="support-section-title">App Version</div>

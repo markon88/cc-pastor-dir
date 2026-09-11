@@ -45,7 +45,7 @@ const ADMIN_SECTIONS = {
 export function renderAdminView(container) {
   container.innerHTML = `
     <div class="list-header">
-      <div class="view-title">Manage Access</div>
+      <div class="view-title">Admin Tools</div>
     </div>
     <div class="support-body">
       <div class="support-section" style="gap:0;">

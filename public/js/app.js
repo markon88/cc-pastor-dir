@@ -44,6 +44,7 @@ async function init() {
 
   loginScreen.classList.add('hidden');
   appShell.classList.remove('hidden');
+  document.getElementById('profile-account-info').textContent = `Signed in as ${currentUser.email}`;
 
   if (currentUser.isAdmin) {
     document.querySelector('[data-tab="admin"]').style.display = 'flex';
@@ -309,7 +310,7 @@ function renderTab(tab) {
   } else if (tab === 'volunteers') {
     renderVolunteersView(mainContent, id => showVolunteerDetail(id));
   } else if (tab === 'support') {
-    renderSupportView(mainContent, currentUser);
+    renderSupportView(mainContent);
   } else if (tab === 'officedirectory') {
     renderOfficeDirectoryView(mainContent);
   } else if (tab === 'myama') {
