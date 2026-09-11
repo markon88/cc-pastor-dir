@@ -85,6 +85,7 @@ async function init() {
   renderTab('pastors');
   checkForUpdates();
   refreshDisasterTab();
+  showProfileMenuAnnouncement();
 
   // Re-poll periodically so tabs gated by an admin-toggleable module flag
   // appear/disappear live without requiring a reload.
@@ -128,6 +129,23 @@ function getMyPastorRecord() {
   const lookupEmail = (currentUser?.directoryEmail ?? currentUser?.email)?.toLowerCase();
   if (!lookupEmail) return null;
   return pastors.find(p => p.email?.toLowerCase() === lookupEmail) ?? null;
+}
+
+// ── One-time announcements ────────────────────────────────────────────────────
+const ANNOUNCEMENT_KEY = 'announcement:profile-menu-2026-09';
+
+function showProfileMenuAnnouncement() {
+  try {
+    if (localStorage.getItem(ANNOUNCEMENT_KEY)) return;
+  } catch { /* private browsing / storage blocked — just show it */ }
+
+  const overlay = document.getElementById('announcement-overlay');
+  overlay.classList.remove('hidden');
+
+  document.getElementById('announcement-dismiss').addEventListener('click', () => {
+    try { localStorage.setItem(ANNOUNCEMENT_KEY, '1'); } catch { /* ignore */ }
+    overlay.classList.add('hidden');
+  }, { once: true });
 }
 
 function showLoginScreen() {

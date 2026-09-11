@@ -107,6 +107,57 @@ html, body {
 .profile-menu-item:hover { background: var(--bg); }
 .profile-menu-item + .profile-menu-item { border-top: 1px solid var(--border); }
 
+/* ── Announcement Popup ─────────────────────────────────────────────────── */
+.announcement-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+}
+
+.announcement-overlay.hidden { display: none; }
+
+.announcement-card {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 24px 20px;
+  max-width: 340px;
+  width: 100%;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+  text-align: center;
+}
+
+.announcement-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.announcement-body {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
+  margin-bottom: 18px;
+}
+
+.announcement-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 #banners { flex-shrink: 0; }
 
 #main-content {
