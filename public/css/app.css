@@ -472,6 +472,18 @@ html, body {
   border-bottom: 1px solid var(--border);
 }
 
+.office-personnel-sort { margin-bottom: 4px; }
+.sort-toggle-3 .sort-btn { font-size: 12px; padding: 6px 2px; }
+
+.office-dept-group { margin-bottom: 16px; }
+
+.office-dept-heading {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  padding: 6px 2px;
+}
+
 .tag-ext { background: var(--bg); color: var(--text-sub); }
 
 .office-updated {

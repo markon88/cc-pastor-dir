@@ -90,6 +90,70 @@ function telLink(number) {
   return `<a href="tel:${digits}">${esc(number)}</a>`;
 }
 
+// A dept string can carry several roles ("Director: X; Assoc. Director: Y") and each
+// role can itself cover several departments ("Director: X, Y, Z") — split on both so a
+// person who wears multiple hats shows up under each department, grouped by the
+// substance (e.g. "Education") rather than by their differently-worded job title.
+function parseDepartments(deptStr) {
+  const segments = deptStr.split(';').map(s => s.trim()).filter(Boolean);
+  const depts = [];
+  for (const seg of segments) {
+    const colonIdx = seg.indexOf(':');
+    if (colonIdx === -1) {
+      depts.push(seg);
+    } else {
+      seg.slice(colonIdx + 1).split(',').map(s => s.trim()).filter(Boolean).forEach(d => depts.push(d));
+    }
+  }
+  return [...new Set(depts)];
+}
+
+const PEOPLE = OFFICE_PERSONNEL.map(p => {
+  const [last, first] = p.name.split(/,\s*/);
+  return { ...p, last: last ?? p.name, first: first ?? '', departments: parseDepartments(p.dept) };
+});
+
+function personItemHtml(p) {
+  return `
+    <div class="list-item office-personnel-item">
+      <div class="item-name">${esc(p.name)}${p.ext ? ` <span class="tag tag-ext">ext. ${esc(p.ext)}</span>` : ''}</div>
+      <div class="item-sub">${esc(p.dept)}</div>
+      <div class="item-sub office-personnel-phones">
+        ${p.home ? `${telLink(p.home)} (office)` : ''}
+        ${p.home && p.cell ? ' &middot; ' : ''}
+        ${p.cell ? `${telLink(p.cell)} (cell)` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderPersonnelList(sortMode) {
+  if (sortMode === 'department') {
+    const groups = new Map();
+    for (const p of PEOPLE) {
+      for (const d of p.departments) {
+        if (!groups.has(d)) groups.set(d, []);
+        groups.get(d).push(p);
+      }
+    }
+    const deptNames = [...groups.keys()].sort((a, b) => a.localeCompare(b));
+    return deptNames.map(d => {
+      const people = groups.get(d).slice().sort((a, b) => a.last.localeCompare(b.last) || a.first.localeCompare(b.first));
+      return `
+        <div class="office-dept-group">
+          <div class="office-dept-heading">${esc(d)}</div>
+          <div class="item-list office-personnel-list">${people.map(personItemHtml).join('')}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  const sorted = PEOPLE.slice().sort((a, b) => sortMode === 'first'
+    ? a.first.localeCompare(b.first) || a.last.localeCompare(b.last)
+    : a.last.localeCompare(b.last) || a.first.localeCompare(b.first));
+  return `<div class="item-list office-personnel-list">${sorted.map(personItemHtml).join('')}</div>`;
+}
+
 export function renderOfficeDirectoryView(container) {
   container.innerHTML = `
     <div class="list-header">
@@ -112,19 +176,12 @@ export function renderOfficeDirectoryView(container) {
 
       <div id="office-personnel-panel" class="support-section">
         <div class="support-section-title">Office Personnel <span class="office-updated">Updated ${esc(PERSONNEL_UPDATED)}</span></div>
-        <div class="item-list office-personnel-list">
-          ${OFFICE_PERSONNEL.map(p => `
-            <div class="list-item office-personnel-item">
-              <div class="item-name">${esc(p.name)}${p.ext ? ` <span class="tag tag-ext">ext. ${esc(p.ext)}</span>` : ''}</div>
-              <div class="item-sub">${esc(p.dept)}</div>
-              <div class="item-sub office-personnel-phones">
-                ${p.home ? `${telLink(p.home)} (office)` : ''}
-                ${p.home && p.cell ? ' &middot; ' : ''}
-                ${p.cell ? `${telLink(p.cell)} (cell)` : ''}
-              </div>
-            </div>
-          `).join('')}
+        <div class="sort-toggle sort-toggle-3 office-personnel-sort">
+          <button class="sort-btn active" data-sort="last">Last Name</button>
+          <button class="sort-btn" data-sort="first">First Name</button>
+          <button class="sort-btn" data-sort="department">Department</button>
         </div>
+        <div id="office-personnel-list">${renderPersonnelList('last')}</div>
       </div>
 
       <div id="office-holidays-panel" class="support-section hidden">
@@ -150,6 +207,16 @@ export function renderOfficeDirectoryView(container) {
       const showHolidays = btn.dataset.tab === 'holidays';
       container.querySelector('#office-personnel-panel').classList.toggle('hidden', showHolidays);
       container.querySelector('#office-holidays-panel').classList.toggle('hidden', !showHolidays);
+    });
+  });
+
+  const sortBtns = container.querySelectorAll('.office-personnel-sort .sort-btn');
+  const listEl = container.querySelector('#office-personnel-list');
+  sortBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      sortBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      listEl.innerHTML = renderPersonnelList(btn.dataset.sort);
     });
   });
 }
