@@ -1,4 +1,4 @@
-export async function notify(env, newChurches, newPastors, unmatchedPastors) {
+export async function notify(env, newChurches, newPastors, unmatchedPastors, deactivatedPastors) {
   if (!env.NOTIFY_WEBHOOK_URL) return;
 
   const lines = [];
@@ -13,6 +13,10 @@ export async function notify(env, newChurches, newPastors, unmatchedPastors) {
   if (unmatchedPastors.length > 0) {
     lines.push(`👤 ${unmatchedPastors.length} pastor(s) in eAdventist with no directory match:`);
     for (const p of unmatchedPastors) lines.push(`  • ${p.firstName} ${p.lastName} (eID ${p.eId})`);
+  }
+  if (deactivatedPastors?.length > 0) {
+    lines.push(`🚪 ${deactivatedPastors.length} pastor(s) deactivated — no longer listed in eAdventist:`);
+    for (const p of deactivatedPastors) lines.push(`  • ${p.firstName} ${p.lastName} (eID ${p.eId})`);
   }
 
   await fetch(env.NOTIFY_WEBHOOK_URL, {

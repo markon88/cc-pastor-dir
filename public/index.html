@@ -34,6 +34,20 @@
   </div>
 
   <div id="app" class="hidden">
+    <header id="top-bar">
+      <div class="top-bar-title">CC Pastors</div>
+      <div class="profile-menu">
+        <button id="profile-btn" aria-label="Menu" aria-haspopup="true" aria-expanded="false">👤</button>
+        <div id="profile-dropdown" class="profile-dropdown hidden" role="menu">
+          <button class="profile-menu-item" data-menu-tab="officedirectory" role="menuitem">
+            <span class="tab-icon">🏢</span> Conference Office Directory
+          </button>
+          <button class="profile-menu-item" data-menu-tab="support" role="menuitem">
+            <span class="tab-icon">ℹ️</span> Support
+          </button>
+        </div>
+      </div>
+    </header>
     <div id="banners"></div>
     <div id="main-content"></div>
 
@@ -57,10 +71,6 @@
       <button class="tab-btn" data-tab="disaster" role="tab" aria-label="Disaster Response" style="display:none">
         <span class="tab-icon">🚨</span>
         <span>Disaster</span>
-      </button>
-      <button class="tab-btn" data-tab="support" role="tab" aria-label="Support">
-        <span class="tab-icon">ℹ️</span>
-        <span>Support</span>
       </button>
       <button class="tab-btn" data-tab="admin" role="tab" aria-label="Admin" style="display:none">
         <span class="tab-icon">🔑</span>

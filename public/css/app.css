@@ -42,6 +42,71 @@ html, body {
 #app.hidden { display: none; }
 .hidden { display: none; }
 
+/* ── Top Bar / Profile Menu ─────────────────────────────────────────────── */
+#top-bar {
+  flex-shrink: 0;
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.top-bar-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.profile-menu { position: relative; }
+
+#profile-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary-light);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 240px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 20;
+  overflow: hidden;
+}
+
+.profile-dropdown.hidden { display: none; }
+
+.profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-menu-item:hover { background: var(--bg); }
+.profile-menu-item + .profile-menu-item { border-top: 1px solid var(--border); }
+
 #banners { flex-shrink: 0; }
 
 #main-content {
@@ -383,6 +448,47 @@ html, body {
   display: block;
   line-height: 1.4;
   padding: 10px 16px;
+}
+
+.office-directory-disclaimer {
+  display: block;
+  line-height: 1.4;
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+.tag-ext { background: var(--bg); color: var(--text-sub); }
+
+.office-updated {
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-sub);
+  float: right;
+}
+
+.office-personnel-list { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.office-personnel-item { padding: 12px 16px; }
+.office-personnel-phones a { color: var(--accent); text-decoration: none; }
+
+.office-holiday-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.office-holiday-table th,
+.office-holiday-table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.office-holiday-table th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-sub);
 }
 
 /* ── Action Bar ──────────────────────────────────────────────────────────── */

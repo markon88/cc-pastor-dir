@@ -56,10 +56,11 @@ async function runSync(env, fullSync = false) {
   // updates" (which compares this value, not the actual data) knows to refetch.
   await bumpDataVersion(env);
 
-  const newChurches      = congregationResult?.newChurches      ?? [];
-  const newPastors       = pastorResult?.newPastors              ?? [];
-  const unmatchedPastors = pastorResult?.unmatchedPastors        ?? [];
-  if (newChurches.length > 0 || newPastors.length > 0 || unmatchedPastors.length > 0) {
-    await notify(env, newChurches, newPastors, unmatchedPastors);
+  const newChurches       = congregationResult?.newChurches       ?? [];
+  const newPastors        = pastorResult?.newPastors              ?? [];
+  const unmatchedPastors  = pastorResult?.unmatchedPastors        ?? [];
+  const deactivatedPastors = pastorResult?.deactivatedPastors     ?? [];
+  if (newChurches.length > 0 || newPastors.length > 0 || unmatchedPastors.length > 0 || deactivatedPastors.length > 0) {
+    await notify(env, newChurches, newPastors, unmatchedPastors, deactivatedPastors);
   }
 }

@@ -230,14 +230,46 @@ export async function syncPastors(env) {
     }
   }
 
+  // eAdventist no longer reports removed pastors at all (rather than marking them
+  // deleted), so the only way to catch someone who's left, retired, or moved
+  // conference is to compare who we previously synced against who showed up just now.
+  // Only pastors we've matched to an eadventist_id are eligible — hand-entered
+  // pastors (no eadventist_id) aren't eAdventist's to deactivate.
+  const deactivatedPastors = [];
+  const activeSynced = await env.DB.prepare(
+    "SELECT id, first_name, last_name, eadventist_id FROM pastors WHERE active = 1 AND eadventist_id IS NOT NULL AND eadventist_id != ''"
+  ).all();
+
+  // Guard against treating a bad/partial eAdventist response as a mass exodus:
+  // only deactivate if the feed still accounts for at least half of the pastors
+  // we expect. Otherwise log it as an anomaly and leave everyone alone.
+  if (activeSynced.results.length > 0 && officerMap.size < activeSynced.results.length * 0.5) {
+    await logSync(env, 'pastors', 'deactivation_skipped', null, {
+      note: 'officer feed unexpectedly small vs. known synced pastors — skipping deactivation to avoid false positives',
+      officerCount: officerMap.size,
+      knownSyncedCount: activeSynced.results.length,
+    });
+  } else {
+    for (const p of activeSynced.results) {
+      if (officerMap.has(p.eadventist_id)) continue;
+      await env.DB.prepare('UPDATE pastors SET active = 0 WHERE id = ?').bind(p.id).run();
+      await env.DB.prepare('DELETE FROM pastor_churches WHERE pastor_id = ?').bind(p.id).run();
+      deactivatedPastors.push({ id: p.id, firstName: p.first_name, lastName: p.last_name, eId: p.eadventist_id });
+      await logSync(env, 'pastors', 'deactivate', `${p.first_name} ${p.last_name}`, {
+        eId: p.eadventist_id, note: 'no longer listed as a pastor in eAdventist',
+      });
+    }
+  }
+
   await logSync(env, 'pastors', 'sync_complete', null, {
     processed: officerMap.size,
     updated,
     inserted,
     unmatched: unmatchedPastors.length,
+    deactivated: deactivatedPastors.length,
     churchLinksUpdated,
     volunteersUpdated,
   });
 
-  return { updated, unmatchedPastors, newPastors };
+  return { updated, unmatchedPastors, newPastors, deactivatedPastors };
 }

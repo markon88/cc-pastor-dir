@@ -6,6 +6,7 @@ import { initAmaView, renderAmaView, renderAmaGroupDetail } from './ama.js';
 import { initVolunteersView, renderVolunteersView, getVolunteerById } from './volunteers.js';
 import { renderPastorDetail, renderChurchDetail, renderVolunteerDetail } from './detail.js';
 import { renderSupportView } from './support.js';
+import { renderOfficeDirectoryView } from './officedirectory.js';
 import { renderAdminView } from './admin.js';
 import { checkAmaBanner, initSchedule } from './ama-meetings.js';
 import { initDisaster, checkDisasterActive, renderDisasterView } from './disaster.js';
@@ -221,6 +222,41 @@ function setupTabs() {
       renderTab(tab);
     });
   });
+
+  setupProfileMenu();
+}
+
+// ── Profile menu (top-right) ─────────────────────────────────────────────────
+function setupProfileMenu() {
+  const profileBtn      = document.getElementById('profile-btn');
+  const profileDropdown = document.getElementById('profile-dropdown');
+
+  const closeMenu = () => {
+    profileDropdown.classList.add('hidden');
+    profileBtn.setAttribute('aria-expanded', 'false');
+  };
+
+  profileBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = !profileDropdown.classList.contains('hidden');
+    profileDropdown.classList.toggle('hidden', isOpen);
+    profileBtn.setAttribute('aria-expanded', String(!isOpen));
+  });
+
+  document.addEventListener('click', e => {
+    if (!profileDropdown.contains(e.target) && e.target !== profileBtn) closeMenu();
+  });
+
+  profileDropdown.querySelectorAll('.profile-menu-item').forEach(item => {
+    item.addEventListener('click', () => {
+      closeMenu();
+      const tab = item.dataset.menuTab;
+      if (tab === activeTab && detailStack.length === 0) return;
+      detailStack = [];
+      setActiveTab(tab);
+      renderTab(tab);
+    });
+  });
 }
 
 function setActiveTab(tab) {
@@ -240,6 +276,8 @@ function renderTab(tab) {
     renderVolunteersView(mainContent, id => showVolunteerDetail(id));
   } else if (tab === 'support') {
     renderSupportView(mainContent, currentUser);
+  } else if (tab === 'officedirectory') {
+    renderOfficeDirectoryView(mainContent);
   } else if (tab === 'admin') {
     renderAdminView(mainContent);
   } else if (tab === 'disaster') {
