@@ -26,11 +26,16 @@ export function buildChurchList(pastors, churchAddresses = {}, volunteers = []) 
       const address = (a?.street || a?.city) ? a : null;
       return {
         name,
-        pastors:    pastorsByChurch.get(name) || [],
-        volunteers: volunteersByChurch.get(name) || [],
+        pastors:            pastorsByChurch.get(name) || [],
+        volunteers:         volunteersByChurch.get(name) || [],
         address,
-        membership: a?.membership ?? null,
-        photoUrl:   a?.photoUrl ?? null,
+        membership:         a?.membership ?? null,
+        photoUrl:           a?.photoUrl ?? null,
+        website:            a?.website ?? null,
+        phone:              a?.phone ?? null,
+        email:              a?.email ?? null,
+        serviceTimes:       a?.serviceTimes ?? null,
+        drivingDirections:  a?.drivingDirections ?? null,
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));

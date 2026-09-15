@@ -145,6 +145,44 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack, on
           <div class="detail-value">${church.membership}</div>
         </div>
       ` : ''}
+      ${church.phone ? `
+        <div class="detail-section">
+          <div class="detail-label">Phone</div>
+          <div class="detail-value"><a href="tel:+1${church.phone.replace(/\D/g,'')}" class="phone-link">${escHtml(church.phone)}</a></div>
+        </div>
+      ` : ''}
+      ${church.email ? `
+        <div class="detail-section">
+          <div class="detail-label">Email</div>
+          <div class="detail-value"><a href="mailto:${escHtml(church.email)}" class="email-link">${escHtml(church.email)}</a></div>
+        </div>
+      ` : ''}
+      ${church.website ? `
+        <div class="detail-section">
+          <div class="detail-label">Website</div>
+          <div class="detail-value"><a href="${/^https?:\/\//.test(church.website) ? escHtml(church.website) : `https://${escHtml(church.website)}`}" target="_blank" rel="noopener">${escHtml(church.website)}</a></div>
+        </div>
+      ` : ''}
+      ${church.serviceTimes && Object.values(church.serviceTimes).some(Boolean) ? `
+        <div class="detail-section">
+          <div class="detail-label">Service Times</div>
+          ${[
+            ['sabbath_school', 'Sabbath School'],
+            ['church', 'Worship Service'],
+            ['church_2', 'Second Service'],
+            ['streaming_time', 'Streaming'],
+            ['prayer_meeting', 'Prayer Meeting'],
+          ].filter(([key]) => church.serviceTimes[key])
+           .map(([key, label]) => `<div class="detail-value">${escHtml(label)}: ${escHtml(church.serviceTimes[key])}</div>`)
+           .join('')}
+        </div>
+      ` : ''}
+      ${church.drivingDirections ? `
+        <div class="detail-section">
+          <div class="detail-label">Driving Directions</div>
+          <div class="detail-value">${escHtml(church.drivingDirections)}</div>
+        </div>
+      ` : ''}
       <div class="detail-section">
         <div class="detail-label">Pastor${church.pastors.length > 1 ? 's' : ''}</div>
         ${church.pastors.length

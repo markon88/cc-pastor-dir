@@ -19,7 +19,7 @@ export async function onRequestGet({ env }) {
     env.DB.prepare('SELECT pastor_id, number, mobile, confidential FROM pastor_phones'),
     env.DB.prepare('SELECT pastor_id, church_org_code FROM pastor_churches'),
     env.DB.prepare('SELECT pastor_id, group_id FROM pastor_ama_groups'),
-    env.DB.prepare('SELECT name, org_code, street, city, state, zip, county, membership, photo_url FROM churches ORDER BY name'),
+    env.DB.prepare('SELECT name, org_code, street, city, state, zip, county, membership, photo_url, website, phone, email, service_times, driving_directions FROM churches ORDER BY name'),
     env.DB.prepare('SELECT id, name, leader_id FROM ama_groups ORDER BY sort_order, name'),
     env.DB.prepare("SELECT value FROM meta WHERE key = 'version'"),
     env.DB.prepare('SELECT id, group_name, date, type FROM ama_meetings ORDER BY date'),
@@ -86,6 +86,11 @@ export async function onRequestGet({ env }) {
       ...(c.county != null ? { county: c.county } : {}),
       ...(c.membership != null ? { membership: c.membership } : {}),
       ...(c.photo_url != null ? { photoUrl: c.photo_url } : {}),
+      ...(c.website != null ? { website: c.website } : {}),
+      ...(c.phone != null ? { phone: c.phone } : {}),
+      ...(c.email != null ? { email: c.email } : {}),
+      ...(c.service_times != null ? { serviceTimes: JSON.parse(c.service_times) } : {}),
+      ...(c.driving_directions != null ? { drivingDirections: c.driving_directions } : {}),
     };
   }
 
