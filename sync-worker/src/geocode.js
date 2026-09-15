@@ -1,4 +1,30 @@
 const CENSUS_URL = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress';
+const CENSUS_COORDS_URL = 'https://geocoding.geo.census.gov/geocoder/geographies/coordinates';
+
+// Resolves a lat/long pair to its county name via the free Census Geocoder's
+// reverse-geocode endpoint. Preferred over geocodeCounty when eAdventist has
+// already supplied coordinates, since it skips an extra address-match step.
+export async function geocodeCountyFromCoords(lat, lon) {
+  if (lat == null || lon == null) return null;
+
+  const url = new URL(CENSUS_COORDS_URL);
+  url.searchParams.set('x', String(lon));
+  url.searchParams.set('y', String(lat));
+  url.searchParams.set('benchmark', 'Public_AR_Current');
+  url.searchParams.set('vintage', 'Current_Current');
+  url.searchParams.set('layers', 'Counties');
+  url.searchParams.set('format', 'json');
+
+  try {
+    const resp = await fetch(url.toString());
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const county = data?.result?.geographies?.Counties?.[0]?.BASENAME;
+    return county ?? null;
+  } catch {
+    return null;
+  }
+}
 
 // Resolves a US street address to its county name via the free Census Geocoder.
 // Returns null (rather than throwing) on no-match or API failure so a bad/
