@@ -225,6 +225,7 @@ html, body {
 .dis-prep-card .admin-add-row { margin-top: 16px; }
 .dis-prep-card .admin-add-row:first-of-type { margin-top: 0; }
 .dis-prep-bool-row { gap: 20px; }
+#dis-county-wrap .admin-add-row { margin-top: 12px; }
 .dis-prep-bool-row label,
 .dis-prep-card .admin-add-row label {
   font-size: 17px;
