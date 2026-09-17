@@ -20,16 +20,37 @@ export async function onRequest({ request, env, data }) {
   }
 
   if (method === 'POST') {
-    const { name, coordinationEmails, isSimulation } = await request.json().catch(() => ({}));
+    const { name, coordinators, isSimulation } = await request.json().catch(() => ({}));
     if (!name?.trim()) return json({ error: 'name is required' }, 400);
     const id = crypto.randomUUID();
     // Prefix the name itself so "SIMULATION" is unmistakable everywhere the
     // incident name is displayed (tab title, dashboard, emails) without every
     // consumer needing to separately check the flag.
     const displayName = isSimulation ? `[SIMULATION] ${name.trim()}` : name.trim();
+
+    const roster = (Array.isArray(coordinators) ? coordinators : [])
+      .map(c => ({
+        pastorId:  c?.pastorId || null,
+        firstName: (c?.firstName || '').trim(),
+        lastName:  (c?.lastName || '').trim(),
+        email:     (c?.email || '').trim() || null,
+        phone:     (c?.phone || '').trim() || null,
+      }))
+      .filter(c => c.firstName || c.lastName);
+    // Derived comma-separated list, kept in sync so the existing
+    // notify-coordination email pathway (status.js) needs no changes.
+    const coordinationEmails = roster.map(c => c.email).filter(Boolean).join(',') || null;
+
     await env.DB.prepare(
       'INSERT INTO disaster_incidents (id, name, active, is_simulation, coordination_emails, created_by) VALUES (?, ?, 1, ?, ?, ?)'
-    ).bind(id, displayName, isSimulation ? 1 : 0, coordinationEmails || null, user.email).run();
+    ).bind(id, displayName, isSimulation ? 1 : 0, coordinationEmails, user.email).run();
+
+    if (roster.length) {
+      await env.DB.batch(roster.map((c, i) => env.DB.prepare(
+        'INSERT INTO disaster_incident_coordinators (incident_id, pastor_id, first_name, last_name, email, phone, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).bind(id, c.pastorId, c.firstName, c.lastName, c.email, c.phone, i)));
+    }
+
     return json({ ok: true, id });
   }
 

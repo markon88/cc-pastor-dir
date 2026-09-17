@@ -56,6 +56,7 @@ function canManageDisasterModule() {
 export async function renderDisasterView(container) {
   if (!lastActive.active) {
     if (canManageDisasterModule()) {
+      newIncidentCoordinators = [];
       container.innerHTML = `
         <div class="list-header"><div class="view-title">Disaster Response</div></div>
         <div class="support-body">
@@ -66,8 +67,10 @@ export async function renderDisasterView(container) {
             <div class="admin-add-row">
               <input type="text" id="dis-new-name" class="search-input" placeholder="Incident name (e.g. Hurricane Helene)" autocomplete="off">
             </div>
-            <div class="admin-add-row">
-              <input type="text" id="dis-new-emails" class="search-input" placeholder="Coordination team emails (comma-separated)" autocomplete="off">
+            <div class="support-section-title" style="margin-top:4px;">Coordination Team</div>
+            <div id="dis-new-coord-list"></div>
+            <div class="detail-cta-row">
+              <button type="button" id="dis-new-coord-add" class="support-btn support-btn-alt">+ Add Coordinator</button>
             </div>
             <div class="admin-add-row">
               <label><input type="checkbox" id="dis-new-sim"> This is a simulation / drill (not an actual incident)</label>
@@ -78,6 +81,8 @@ export async function renderDisasterView(container) {
           </div>
         </div>`;
       container.querySelector('#dis-new-start').addEventListener('click', startIncident);
+      container.querySelector('#dis-new-coord-add').addEventListener('click', openCoordinatorPicker);
+      renderSelectedCoordinators();
       renderCoordinatorSection(container.querySelector('#dis-coordinator'));
     } else {
       container.innerHTML = `<div class="empty-state">No active disaster incident.</div>`;
@@ -195,20 +200,135 @@ async function loadCoordinator(el, { role, title, idPrefix }) {
 
 async function startIncident() {
   const name = document.getElementById('dis-new-name').value.trim();
-  const coordinationEmails = document.getElementById('dis-new-emails').value.trim();
   const isSimulation = document.getElementById('dis-new-sim').checked;
   if (!name) return;
   const res = await fetch('/api/admin/disaster/incidents', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, coordinationEmails: coordinationEmails || null, isSimulation }),
+    body: JSON.stringify({ name, coordinators: newIncidentCoordinators, isSimulation }),
   });
   if (res.ok) {
+    newIncidentCoordinators = [];
     await checkDisasterActive();
     location.reload();
   } else {
     alert('Failed to start incident.');
   }
+}
+
+// ── Coordination team picker (used when starting an incident) ──────────────
+let newIncidentCoordinators = [];
+let coordPickerWired = false;
+
+function coordinatorRowsHtml() {
+  if (!newIncidentCoordinators.length) return '<p class="item-sub">No coordinators added yet.</p>';
+  return newIncidentCoordinators.map((c, i) => `
+    <div class="admin-email-row">
+      <div class="admin-email-info">
+        <div class="item-name">${esc(`${c.firstName} ${c.lastName}`.trim())}</div>
+        <div class="item-sub">${[c.email, c.phone].filter(Boolean).map(esc).join(' · ') || 'No contact info'}</div>
+      </div>
+      <div class="admin-email-actions">
+        <button type="button" class="admin-delete-btn dis-new-coord-remove" data-index="${i}">Remove</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderSelectedCoordinators() {
+  const el = document.getElementById('dis-new-coord-list');
+  if (!el) return;
+  el.innerHTML = coordinatorRowsHtml();
+  el.querySelectorAll('.dis-new-coord-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      newIncidentCoordinators.splice(Number(btn.dataset.index), 1);
+      renderSelectedCoordinators();
+    });
+  });
+}
+
+function renderCoordinatorPickList(query) {
+  const listEl = document.getElementById('dis-coord-picker-list');
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    listEl.innerHTML = '<p class="item-sub">Start typing a name to search…</p>';
+    return;
+  }
+  const selectedPastorIds = new Set(newIncidentCoordinators.filter(c => c.pastorId).map(c => c.pastorId));
+  const matches = allPastors
+    .filter(p => p.displayName.toLowerCase().includes(q))
+    .slice(0, 25);
+  if (!matches.length) {
+    listEl.innerHTML = '<p class="item-sub">No pastors found.</p>';
+    return;
+  }
+  listEl.innerHTML = matches.map(p => {
+    const added = selectedPastorIds.has(p.id);
+    return `
+      <div class="list-item dis-coord-pick-item" data-id="${esc(p.id)}">
+        <div>
+          <div class="item-name">${esc(p.displayName)}</div>
+          <div class="item-sub">${esc(p.email || '')}</div>
+        </div>
+        ${added ? '<span class="tag">Added ✓</span>' : ''}
+      </div>
+    `;
+  }).join('');
+  listEl.querySelectorAll('.dis-coord-pick-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      const idx = newIncidentCoordinators.findIndex(c => c.pastorId === id);
+      if (idx >= 0) {
+        newIncidentCoordinators.splice(idx, 1);
+      } else {
+        const p = allPastors.find(pp => pp.id === id);
+        if (!p) return;
+        newIncidentCoordinators.push({
+          pastorId: p.id,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          email: p.email || '',
+          phone: p.primaryPhone || p.phones?.[0]?.number || '',
+        });
+      }
+      renderSelectedCoordinators();
+      renderCoordinatorPickList(document.getElementById('dis-coord-search').value);
+    });
+  });
+}
+
+function ensureCoordPickerWired() {
+  if (coordPickerWired) return;
+  coordPickerWired = true;
+  const overlay = document.getElementById('dis-coord-picker-overlay');
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeCoordinatorPicker(); });
+  document.getElementById('dis-coord-picker-close').addEventListener('click', closeCoordinatorPicker);
+  document.getElementById('dis-coord-search').addEventListener('input', e => renderCoordinatorPickList(e.target.value));
+  document.getElementById('dis-coord-manual-add').addEventListener('click', () => {
+    const firstName = document.getElementById('dis-coord-manual-first').value.trim();
+    const lastName = document.getElementById('dis-coord-manual-last').value.trim();
+    const email = document.getElementById('dis-coord-manual-email').value.trim();
+    const phone = document.getElementById('dis-coord-manual-phone').value.trim();
+    if (!firstName || !lastName) { alert('First and last name are required.'); return; }
+    newIncidentCoordinators.push({ pastorId: null, firstName, lastName, email, phone });
+    renderSelectedCoordinators();
+    document.getElementById('dis-coord-manual-first').value = '';
+    document.getElementById('dis-coord-manual-last').value = '';
+    document.getElementById('dis-coord-manual-email').value = '';
+    document.getElementById('dis-coord-manual-phone').value = '';
+  });
+}
+
+function openCoordinatorPicker() {
+  ensureCoordPickerWired();
+  document.getElementById('dis-coord-picker-overlay').classList.remove('hidden');
+  document.getElementById('dis-coord-search').value = '';
+  renderCoordinatorPickList('');
+  document.getElementById('dis-coord-search').focus();
+}
+
+function closeCoordinatorPicker() {
+  document.getElementById('dis-coord-picker-overlay').classList.add('hidden');
 }
 
 // ── Pastor check-in ──────────────────────────────────────────────────────────
@@ -541,23 +661,44 @@ function renderCountyReadiness(el, churchName) {
 const PREP_STEPS = [
   {
     key: 'backupPower', kind: 'bool', notesKey: 'backupPowerNotes',
-    question: 'Do you have a generator or other backup power source?',
+    question: 'Does your church have a generator or other backup power source?',
     helper: 'Even a small generator can keep phones charged and lights on.',
   },
   {
     key: 'emergencySupplies', kind: 'bool', notesKey: 'emergencySuppliesNotes',
-    question: 'Do you keep water, first aid, or food supplies at the church?',
+    question: 'Does your church keep water, first aid, or food supplies on-site?',
     helper: "Doesn't need to be much — what's on hand helps us know where to route donations.",
   },
   {
-    key: 'shelterCapacity', kind: 'text',
-    question: 'Could your building serve as a temporary shelter, and for roughly how many people?',
+    key: 'shelterAvailable', kind: 'bool', notesKey: 'shelterNotes',
+    question: "Could your church's building serve as a temporary shelter?",
     helper: 'Think fellowship hall / classrooms, not just the sanctuary.',
   },
   {
-    key: 'communicationPlan', kind: 'text',
-    question: 'Do you have a way to reach your members quickly in an emergency (phone tree, group text, app)?',
-    helper: "Just tell us what you'd actually use.",
+    key: 'shelterCapacityCount', kind: 'number', showIf: a => a.shelterAvailable === true,
+    question: 'Roughly how many people could it hold?',
+    helper: 'A rough estimate is fine.',
+  },
+  {
+    key: 'hasCommunicationPlan', kind: 'bool',
+    question: 'Does your church have a way to reach its members quickly in an emergency?',
+    helper: 'e.g. a phone tree, group text, or an app.',
+  },
+  {
+    key: 'communicationMethods', kind: 'checklist', showIf: a => a.hasCommunicationPlan === true,
+    question: 'Which methods does your church use?',
+    helper: 'Select all that apply.',
+    options: [
+      { key: 'commMethodPhoneTree', label: 'Phone tree' },
+      { key: 'commMethodGroupText', label: 'Group text' },
+      { key: 'commMethodApp', label: 'App (e.g. GroupMe, church app)' },
+      { key: 'commMethodOther', label: 'Other' },
+    ],
+  },
+  {
+    key: 'commMethodOtherDetail', kind: 'text', showIf: a => a.commMethodOther === true,
+    question: 'What other method does your church use?',
+    helper: 'Briefly describe it.',
   },
   {
     key: 'donationDropoff', kind: 'bool',
@@ -565,13 +706,17 @@ const PREP_STEPS = [
     helper: 'Somewhere people could bring supplies to be sorted or forwarded.',
   },
   {
-    key: 'donationDropoffCoordinator', kind: 'text', showIf: a => a.donationDropoff === true,
-    question: 'Who would coordinate this?',
-    helper: 'Name and a phone number or email works great.',
+    key: 'donationDropoffCoordinatorName', kind: 'text', showIf: a => a.donationDropoff === true,
+    extraKeys: [
+      { key: 'donationDropoffCoordinatorPhone', placeholder: 'Phone', type: 'tel' },
+      { key: 'donationDropoffCoordinatorEmail', placeholder: 'Email', type: 'email' },
+    ],
+    question: 'Who at your church would coordinate this?',
+    helper: 'Name and the best way to reach them.',
   },
   {
     key: 'transportationAvailable', kind: 'bool', notesKey: 'transportationNotes',
-    question: 'Are there people in your church prepared to provide transportation for donated goods to a central warehouse or a rendezvous point?',
+    question: 'Are there people at your church prepared to provide transportation for donated goods to a central warehouse or a rendezvous point?',
     helper: 'Even one or two people with a truck or van is useful to know about.',
   },
   {
@@ -580,25 +725,30 @@ const PREP_STEPS = [
     helper: 'Somewhere affected people could come to receive supplies.',
   },
   {
-    key: 'distributionPointCoordinator', kind: 'text', showIf: a => a.distributionPoint === true,
-    question: 'Who would coordinate this?',
-    helper: 'Name and a phone number or email works great.',
+    key: 'distributionPointCoordinatorName', kind: 'text', showIf: a => a.distributionPoint === true,
+    extraKeys: [
+      { key: 'distributionPointCoordinatorPhone', placeholder: 'Phone', type: 'tel' },
+      { key: 'distributionPointCoordinatorEmail', placeholder: 'Email', type: 'email' },
+    ],
+    question: 'Who at your church would coordinate this?',
+    helper: 'Name and the best way to reach them.',
   },
   {
-    key: 'emergencyContactName', kind: 'text', pairKey: 'emergencyContactPhone', pairPlaceholder: 'Phone',
-    question: 'Who should coordination reach first if this building is affected?',
+    key: 'emergencyContactName', kind: 'text',
+    extraKeys: [{ key: 'emergencyContactPhone', placeholder: 'Phone', type: 'tel' }],
+    question: "Who should coordination reach first if your church's building is affected?",
     helper: "Doesn't have to be the pastor — whoever holds a key or knows the building.",
   },
   {
     key: 'notes', kind: 'text',
-    question: 'Anything else we should know?',
+    question: "Anything else we should know about your church's disaster preparedness?",
     helper: 'Optional — anything not covered above.',
   },
 ];
 
 const PREP_LABELS = {
   backupPower: 'Backup power', emergencySupplies: 'Emergency supplies on-site',
-  shelterCapacity: 'Shelter capacity', communicationPlan: 'Communication plan',
+  shelterAvailable: 'Shelter capacity', hasCommunicationPlan: 'Communication plan',
   donationDropoff: 'Donation drop-off point', transportationAvailable: 'Transportation for donated goods',
   distributionPoint: 'Distribution point (POD)', emergencyContactName: 'On-site emergency contact',
   notes: 'Notes',
@@ -629,7 +779,7 @@ function renderPrepIntro(section, churchName) {
   section.innerHTML = `
     <div class="detail-label">Disaster Preparedness</div>
     <p class="item-sub">How is your church prepared to respond during a disaster or public emergency incident?</p>
-    <div class="admin-add-row">
+    <div class="detail-cta-row">
       <button id="dis-prep-start" class="support-btn">Get Started</button>
     </div>
   `;
@@ -641,9 +791,26 @@ function renderPrepSummary(section, churchName, answers) {
     const val = answers[s.key];
     if (val === null || val === undefined || val === '') return '';
     let display = s.kind === 'bool' ? (val ? 'Yes' : 'No') : esc(val);
+    if (s.key === 'shelterAvailable' && val && answers.shelterCapacityCount) display += ` — capacity: ~${esc(answers.shelterCapacityCount)} people`;
     if (s.kind === 'bool' && val && s.notesKey && answers[s.notesKey]) display += ` — ${esc(answers[s.notesKey])}`;
-    if (s.key === 'donationDropoff' && val && answers.donationDropoffCoordinator) display += ` — coordinator: ${esc(answers.donationDropoffCoordinator)}`;
-    if (s.key === 'distributionPoint' && val && answers.distributionPointCoordinator) display += ` — coordinator: ${esc(answers.distributionPointCoordinator)}`;
+    if (s.key === 'hasCommunicationPlan' && val) {
+      const methods = [];
+      if (answers.commMethodPhoneTree) methods.push('Phone tree');
+      if (answers.commMethodGroupText) methods.push('Group text');
+      if (answers.commMethodApp) methods.push('App');
+      if (answers.commMethodOther) methods.push(`Other${answers.commMethodOtherDetail ? ` (${esc(answers.commMethodOtherDetail)})` : ''}`);
+      if (methods.length) display += ` — ${methods.join(', ')}`;
+    }
+    if (s.key === 'donationDropoff' && val && answers.donationDropoffCoordinatorName) {
+      display += ` — coordinator: ${esc(answers.donationDropoffCoordinatorName)}`;
+      const contact = answers.donationDropoffCoordinatorPhone || answers.donationDropoffCoordinatorEmail;
+      if (contact) display += ` (${esc(contact)})`;
+    }
+    if (s.key === 'distributionPoint' && val && answers.distributionPointCoordinatorName) {
+      display += ` — coordinator: ${esc(answers.distributionPointCoordinatorName)}`;
+      const contact = answers.distributionPointCoordinatorPhone || answers.distributionPointCoordinatorEmail;
+      if (contact) display += ` (${esc(contact)})`;
+    }
     if (s.key === 'emergencyContactName' && answers.emergencyContactPhone) display += ` — ${esc(answers.emergencyContactPhone)}`;
     return `
       <div class="admin-activity-row">
@@ -657,7 +824,7 @@ function renderPrepSummary(section, churchName, answers) {
   section.innerHTML = `
     <div class="detail-label">Disaster Preparedness</div>
     ${rows}
-    <div class="admin-add-row">
+    <div class="detail-cta-row">
       <button id="dis-prep-edit" class="support-btn">Edit Answers</button>
     </div>
     <div id="dis-county-wrap"></div>
@@ -684,59 +851,114 @@ async function savePrepField(churchName, fields) {
   }).catch(() => {});
 }
 
+// ── Preparedness wizard modal ────────────────────────────────────────────────
+let prepModalCtx = null;
+let prepOverlayWired = false;
+
+function ensurePrepOverlayWired() {
+  if (prepOverlayWired) return;
+  prepOverlayWired = true;
+  const overlay = document.getElementById('dis-prep-overlay');
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay && prepModalCtx) closePrepModal();
+  });
+}
+
+function closePrepModal() {
+  document.getElementById('dis-prep-overlay').classList.add('hidden');
+  if (!prepModalCtx) return;
+  const { section, churchName, answers } = prepModalCtx;
+  prepModalCtx = null;
+  if (prepHasAnyAnswer(answers)) renderPrepSummary(section, churchName, answers);
+  else renderPrepIntro(section, churchName);
+}
+
 function renderPrepWizard(section, churchName, answers, stepIndex) {
   const idx = nextPrepStepIndex(answers, stepIndex);
   if (idx >= PREP_STEPS.length) {
+    document.getElementById('dis-prep-overlay').classList.add('hidden');
+    prepModalCtx = null;
     renderPrepSummary(section, churchName, answers);
     return;
   }
+
+  ensurePrepOverlayWired();
+  prepModalCtx = { section, churchName, answers };
+  const overlay = document.getElementById('dis-prep-overlay');
+  const modal = document.getElementById('dis-prep-modal-body');
+  overlay.classList.remove('hidden');
+
   const step = PREP_STEPS[idx];
   const total = PREP_STEPS.filter(s => !s.showIf || s.showIf(answers)).length;
   const position = PREP_STEPS.slice(0, idx + 1).filter(s => !s.showIf || s.showIf(answers)).length;
 
   const boolInputs = step.kind === 'bool' ? `
-    <div class="admin-add-row">
+    <div class="admin-add-row dis-prep-bool-row">
       <label><input type="radio" name="dis-prep-bool" value="yes" ${answers[step.key] === true ? 'checked' : ''}> Yes</label>
       <label><input type="radio" name="dis-prep-bool" value="no" ${answers[step.key] === false ? 'checked' : ''}> No</label>
     </div>
     ${step.notesKey ? `<div class="admin-add-row"><textarea id="dis-prep-notes" class="search-input" placeholder="Details (optional)" rows="2">${esc(answers[step.notesKey] || '')}</textarea></div>` : ''}
+  ` : step.kind === 'number' ? `
+    <div class="admin-add-row">
+      <input type="number" id="dis-prep-number" class="search-input" inputmode="numeric" min="0" step="1" placeholder="Number of people" value="${answers[step.key] ?? ''}">
+    </div>
+  ` : step.kind === 'checklist' ? `
+    <div class="admin-add-row dis-prep-checklist">
+      ${step.options.map(opt => `<label><input type="checkbox" class="dis-prep-check" value="${opt.key}" ${answers[opt.key] ? 'checked' : ''}> ${esc(opt.label)}</label>`).join('')}
+    </div>
   ` : `
     <div class="admin-add-row">
       <textarea id="dis-prep-text" class="search-input" placeholder="Your answer" rows="2">${esc(answers[step.key] || '')}</textarea>
     </div>
-    ${step.pairKey ? `<div class="admin-add-row"><input type="text" id="dis-prep-text2" class="search-input" placeholder="${esc(step.pairPlaceholder)}" value="${esc(answers[step.pairKey] || '')}"></div>` : ''}
+    ${(step.extraKeys || []).map((ek, i) => `<div class="admin-add-row"><input type="${ek.type || 'text'}" id="dis-prep-extra-${i}" class="search-input" placeholder="${esc(ek.placeholder)}" value="${esc(answers[ek.key] || '')}"></div>`).join('')}
   `;
 
-  section.innerHTML = `
+  modal.innerHTML = `
+    <button type="button" id="dis-prep-close" class="modal-close-btn" aria-label="Close">&times;</button>
     <div class="detail-label">Disaster Preparedness <span class="item-sub">(${position} of ${total})</span></div>
-    <p class="item-sub" style="font-weight:600;color:var(--text);">${esc(step.question)}</p>
-    <p class="item-sub">${esc(step.helper)}</p>
+    <p class="dis-prep-question">${esc(step.question)}</p>
+    <p class="dis-prep-helper">${esc(step.helper)}</p>
     ${boolInputs}
     <div class="admin-add-row">
-      <button id="dis-prep-skip" class="support-btn" style="background:var(--text-sub)">Skip</button>
-      <button id="dis-prep-next" class="support-btn">Next</button>
+      <button id="dis-prep-skip" class="support-btn support-btn-alt" style="flex:1">Skip</button>
+      <button id="dis-prep-next" class="support-btn" style="flex:1">Next</button>
     </div>
   `;
 
   const advance = (updatedAnswers) => renderPrepWizard(section, churchName, updatedAnswers, idx + 1);
 
-  section.querySelector('#dis-prep-skip').addEventListener('click', async () => {
-    const fields = { [step.key]: null };
-    if (step.notesKey) fields[step.notesKey] = null;
-    if (step.pairKey) fields[step.pairKey] = null;
+  modal.querySelector('#dis-prep-close').addEventListener('click', closePrepModal);
+
+  modal.querySelector('#dis-prep-skip').addEventListener('click', async () => {
+    const fields = {};
+    if (step.kind === 'checklist') {
+      step.options.forEach(opt => { fields[opt.key] = null; });
+    } else {
+      fields[step.key] = null;
+      if (step.notesKey) fields[step.notesKey] = null;
+      (step.extraKeys || []).forEach(ek => { fields[ek.key] = null; });
+    }
     await savePrepField(churchName, fields);
     advance({ ...answers, ...fields });
   });
 
-  section.querySelector('#dis-prep-next').addEventListener('click', async () => {
+  modal.querySelector('#dis-prep-next').addEventListener('click', async () => {
     const fields = {};
     if (step.kind === 'bool') {
-      const checked = section.querySelector('input[name="dis-prep-bool"]:checked')?.value;
+      const checked = modal.querySelector('input[name="dis-prep-bool"]:checked')?.value;
       fields[step.key] = checked === 'yes' ? true : checked === 'no' ? false : null;
-      if (step.notesKey) fields[step.notesKey] = section.querySelector('#dis-prep-notes')?.value.trim() || null;
+      if (step.notesKey) fields[step.notesKey] = modal.querySelector('#dis-prep-notes')?.value.trim() || null;
+    } else if (step.kind === 'number') {
+      const raw = modal.querySelector('#dis-prep-number')?.value.trim();
+      fields[step.key] = raw ? parseInt(raw, 10) : null;
+    } else if (step.kind === 'checklist') {
+      const checked = new Set([...modal.querySelectorAll('.dis-prep-check:checked')].map(el => el.value));
+      step.options.forEach(opt => { fields[opt.key] = checked.has(opt.key); });
     } else {
-      fields[step.key] = section.querySelector('#dis-prep-text')?.value.trim() || null;
-      if (step.pairKey) fields[step.pairKey] = section.querySelector('#dis-prep-text2')?.value.trim() || null;
+      fields[step.key] = modal.querySelector('#dis-prep-text')?.value.trim() || null;
+      (step.extraKeys || []).forEach((ek, i) => {
+        fields[ek.key] = modal.querySelector(`#dis-prep-extra-${i}`)?.value.trim() || null;
+      });
     }
     await savePrepField(churchName, fields);
     advance({ ...answers, ...fields });

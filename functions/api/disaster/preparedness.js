@@ -8,26 +8,39 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
 const FIELDS = [
   'backupPower', 'backupPowerNotes',
   'emergencySupplies', 'emergencySuppliesNotes',
-  'shelterCapacity',
-  'communicationPlan',
-  'donationDropoff', 'donationDropoffCoordinator',
+  'shelterAvailable', 'shelterCapacityCount', 'shelterNotes',
+  'hasCommunicationPlan',
+  'commMethodPhoneTree', 'commMethodGroupText', 'commMethodApp', 'commMethodOther', 'commMethodOtherDetail',
+  'donationDropoff', 'donationDropoffCoordinatorName', 'donationDropoffCoordinatorPhone', 'donationDropoffCoordinatorEmail',
   'transportationAvailable', 'transportationNotes',
-  'distributionPoint', 'distributionPointCoordinator',
+  'distributionPoint', 'distributionPointCoordinatorName', 'distributionPointCoordinatorPhone', 'distributionPointCoordinatorEmail',
   'emergencyContactName', 'emergencyContactPhone',
   'notes',
 ];
 const COLUMN = {
   backupPower: 'backup_power', backupPowerNotes: 'backup_power_notes',
   emergencySupplies: 'emergency_supplies', emergencySuppliesNotes: 'emergency_supplies_notes',
-  shelterCapacity: 'shelter_capacity',
-  communicationPlan: 'communication_plan',
-  donationDropoff: 'donation_dropoff', donationDropoffCoordinator: 'donation_dropoff_coordinator',
+  shelterAvailable: 'shelter_available', shelterCapacityCount: 'shelter_capacity_count', shelterNotes: 'shelter_notes',
+  hasCommunicationPlan: 'has_communication_plan',
+  commMethodPhoneTree: 'comm_method_phone_tree', commMethodGroupText: 'comm_method_group_text',
+  commMethodApp: 'comm_method_app', commMethodOther: 'comm_method_other', commMethodOtherDetail: 'comm_method_other_detail',
+  donationDropoff: 'donation_dropoff',
+  donationDropoffCoordinatorName: 'donation_dropoff_coordinator_name',
+  donationDropoffCoordinatorPhone: 'donation_dropoff_coordinator_phone',
+  donationDropoffCoordinatorEmail: 'donation_dropoff_coordinator_email',
   transportationAvailable: 'transportation_available', transportationNotes: 'transportation_notes',
-  distributionPoint: 'distribution_point', distributionPointCoordinator: 'distribution_point_coordinator',
+  distributionPoint: 'distribution_point',
+  distributionPointCoordinatorName: 'distribution_point_coordinator_name',
+  distributionPointCoordinatorPhone: 'distribution_point_coordinator_phone',
+  distributionPointCoordinatorEmail: 'distribution_point_coordinator_email',
   emergencyContactName: 'emergency_contact_name', emergencyContactPhone: 'emergency_contact_phone',
   notes: 'notes',
 };
-const BOOL_FIELDS = new Set(['backupPower', 'emergencySupplies', 'donationDropoff', 'transportationAvailable', 'distributionPoint']);
+const BOOL_FIELDS = new Set([
+  'backupPower', 'emergencySupplies', 'shelterAvailable', 'hasCommunicationPlan',
+  'commMethodPhoneTree', 'commMethodGroupText', 'commMethodApp', 'commMethodOther',
+  'donationDropoff', 'transportationAvailable', 'distributionPoint',
+]);
 
 function toBool(v) {
   return v === null || v === undefined ? null : (v ? 1 : 0);

@@ -196,6 +196,89 @@ html, body {
 
 .feedback-actions { display: flex; gap: 8px; }
 
+/* ── Disaster Preparedness Modal ─────────────────────────────────────────── */
+.dis-prep-card {
+  text-align: left;
+  max-width: 400px;
+  position: relative;
+  padding-top: 30px;
+}
+
+.dis-prep-card .detail-label { font-size: 12px; }
+
+.dis-prep-question {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+  margin: 10px 0 8px;
+}
+
+.dis-prep-helper {
+  font-size: 15px;
+  color: var(--text-sub);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+
+.dis-prep-card .search-input { font-size: 16px; }
+.dis-prep-bool-row { gap: 20px; }
+.dis-prep-bool-row label,
+.dis-prep-card .admin-add-row label {
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dis-prep-bool-row input[type="radio"] { width: 20px; height: 20px; }
+
+.dis-prep-checklist { flex-direction: column; align-items: flex-start; gap: 12px; }
+.dis-prep-checklist input[type="checkbox"] { width: 20px; height: 20px; }
+
+.modal-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-sub);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Coordinator Picker Modal ─────────────────────────────────────────────── */
+.dis-coord-picker-card {
+  text-align: left;
+  max-width: 420px;
+  position: relative;
+  padding-top: 30px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.dis-coord-picker-card .search-input { margin-top: 10px; font-size: 16px; }
+
+.dis-coord-picker-list {
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dis-coord-pick-item {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dis-coord-manual { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+.dis-coord-manual .admin-add-row { margin-top: 8px; }
+
 #banners { flex-shrink: 0; }
 
 #main-content {
@@ -687,8 +770,15 @@ html, body {
   margin-top: -4px;
 }
 
+/* Standard button template for the app. Use `.support-btn` (with the
+   `-alt`/`-thai` color modifiers below) for any new button rather than a
+   one-off class — it guarantees consistent, generous padding on all sides.
+   Buttons placed inside `.admin-add-row` sit next to an input and get
+   `width: auto`; a lone primary action should instead go in a
+   `.detail-cta-row` for a full-width, clearly-spaced button. */
 .support-btn {
   display: block;
+  width: 100%;
   padding: 13px 16px;
   border-radius: 10px;
   border: none;
@@ -704,6 +794,9 @@ html, body {
 }
 
 .support-btn:active { opacity: 0.75; }
+
+.detail-cta-row { margin-top: 4px; }
+.detail-cta-row .support-btn { padding: 14px 20px; font-size: 16px; }
 
 /* ── AMA Meetings ─────────────────────────────────────────────────────────── */
 .section-divider {
@@ -964,7 +1057,7 @@ html, body {
 .admin-map-form.hidden { display: none; }
 
 .admin-map-row-btns { display: flex; gap: 8px; }
-.admin-map-row-btns .support-btn { font-size: 13px; padding: 9px 4px; }
+.admin-map-row-btns .support-btn { font-size: 13px; padding: 9px 14px; }
 
 .admin-activity-row {
   display: flex;
