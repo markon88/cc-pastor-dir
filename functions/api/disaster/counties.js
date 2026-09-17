@@ -1,4 +1,4 @@
-import { isAdmin, resolveIdentityEmail } from '../../_lib/auth.js';
+import { isAdmin, isStandingDisasterAdmin, resolveIdentityEmail } from '../../_lib/auth.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -45,7 +45,8 @@ export async function onRequestPost({ request, env, data }) {
 
   const identityEmail = await resolveIdentityEmail(user.email, env.DB);
   const serves = await pastorServesChurch(identityEmail, env.DB, churchName);
-  if (!serves && !isAdmin(user.email, env)) return json({ error: 'Forbidden' }, 403);
+  const privileged = isAdmin(user.email, env) || await isStandingDisasterAdmin(user.email, env.DB);
+  if (!serves && !privileged) return json({ error: 'Forbidden' }, 403);
 
   await env.DB.prepare(`
     INSERT INTO church_disaster_counties (church_name, county, mode, response_hours, cert_count, updated_by, updated_at)
@@ -67,7 +68,8 @@ export async function onRequestDelete({ request, env, data }) {
 
   const identityEmail = await resolveIdentityEmail(user.email, env.DB);
   const serves = await pastorServesChurch(identityEmail, env.DB, churchName);
-  if (!serves && !isAdmin(user.email, env)) return json({ error: 'Forbidden' }, 403);
+  const privileged = isAdmin(user.email, env) || await isStandingDisasterAdmin(user.email, env.DB);
+  if (!serves && !privileged) return json({ error: 'Forbidden' }, 403);
 
   await env.DB.prepare('DELETE FROM church_disaster_counties WHERE church_name = ? AND county = ?')
     .bind(churchName, county).run();

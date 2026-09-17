@@ -11,7 +11,7 @@ import { renderMyAmaScheduleView } from './myamaschedule.js';
 import { setupFeedbackModal } from './feedback.js';
 import { renderAdminView } from './admin.js';
 import { checkAmaBanner, initSchedule } from './ama-meetings.js';
-import { initDisaster, checkDisasterActive, renderDisasterView } from './disaster.js';
+import { initDisaster, checkDisasterActive, renderDisasterView, maybeShowSelfReportPrompt } from './disaster.js';
 
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -88,8 +88,12 @@ async function init() {
   setupTabs();
   renderTab('pastors');
   checkForUpdates();
-  refreshDisasterTab();
-  showProfileMenuAnnouncement();
+  await refreshDisasterTab();
+  // An urgent disaster self-report prompt takes priority over — and
+  // replaces — the routine "what's new" announcement, since both are
+  // one-time, attention-grabbing overlays shown right after login.
+  const showedSelfReportPrompt = await maybeShowSelfReportPrompt();
+  if (!showedSelfReportPrompt) showProfileMenuAnnouncement();
 
   // Re-poll periodically so tabs gated by an admin-toggleable module flag
   // appear/disappear live without requiring a reload.

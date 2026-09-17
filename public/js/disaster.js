@@ -50,6 +50,18 @@ export function getLastActive() {
   return lastActive;
 }
 
+// Standing preparedness/county data is per-church and shouldn't be editable
+// (or even visible — it can carry coordinator names/phone/email) by anyone
+// who merely has app access; only that church's own pastor(s) or an
+// admin/standing-disaster-admin should see it. The API already enforces
+// this server-side — this just keeps the UI from showing an editable form
+// to someone whose save will silently 403.
+function canManageChurchPreparedness(churchName) {
+  if (canManageDisasterModule()) return true;
+  const me = myPastor();
+  return !!(me && (me.churches || []).includes(churchName));
+}
+
 function canManageDisasterModule() {
   return !!(currentUser?.isAdmin || currentUser?.isDisasterAdmin);
 }
@@ -362,22 +374,32 @@ function closeCoordinatorPicker() {
 }
 
 // ── Pastor check-in ──────────────────────────────────────────────────────────
+// Shared tri-state radio group — "Unknown / not yet assessed" is a real,
+// distinct answer from "No", used everywhere a pastor self-reports so an
+// unanswered question is never silently recorded as "no damage"/"OK".
+const SR_PERSON_OPTS = [['ok', 'Yes'], ['not_ok', 'No'], ['unknown', 'Unknown / not yet assessed']];
+const SR_YESNO_OPTS  = [['yes', 'Yes'], ['no', 'No'], ['unknown', 'Unknown / not yet assessed']];
+
+function triStateRadioHtml(name, opts, selected) {
+  return `<div class="admin-add-row dis-prep-bool-row dis-tristate-row">${opts.map(([v, label]) => `
+    <label><input type="radio" name="${name}" value="${v}" ${selected === v ? 'checked' : ''}> ${esc(label)}</label>
+  `).join('')}</div>`;
+}
+
 function checkInSectionHtml(status) {
   const s = status || {};
   return `
     <div class="support-section" id="dis-checkin">
       <div class="support-section-title">My Status</div>
       <p class="support-section-desc">${s.updatedAt ? `Last updated ${esc(s.updatedAt)} by ${esc(s.confirmedBy || '')}` : 'Not yet reported.'}</p>
-      <div class="admin-add-row">
-        <label><input type="radio" name="dis-status" value="ok" ${s.status === 'ok' ? 'checked' : ''}> I'm OK</label>
-        <label><input type="radio" name="dis-status" value="unknown" ${s.status !== 'ok' ? 'checked' : ''}> Unknown / Not yet checked in</label>
-      </div>
-      <div class="admin-add-row">
-        <label><input type="checkbox" id="dis-dmg-residence" ${s.propertyDamageResidence ? 'checked' : ''}> Property damage at residence</label>
-      </div>
-      <div class="admin-add-row">
-        <label><input type="checkbox" id="dis-dmg-church" ${s.propertyDamageChurch ? 'checked' : ''}> Property damage at church</label>
-      </div>
+      <div class="detail-label">Are you OK?</div>
+      ${triStateRadioHtml('dis-status', SR_PERSON_OPTS, s.status || 'unknown')}
+      <div class="detail-label">Is your family OK?</div>
+      ${triStateRadioHtml('dis-family', SR_PERSON_OPTS, s.familyStatus || 'unknown')}
+      <div class="detail-label">Property damage at your residence?</div>
+      ${triStateRadioHtml('dis-dmg-residence', SR_YESNO_OPTS, s.propertyDamageResidenceStatus || (s.propertyDamageResidence ? 'yes' : 'unknown'))}
+      <div class="detail-label">Property damage at your church?</div>
+      ${triStateRadioHtml('dis-dmg-church', SR_YESNO_OPTS, s.propertyDamageChurchStatus || (s.propertyDamageChurch ? 'yes' : 'unknown'))}
       <div class="admin-add-row">
         <textarea id="dis-note" class="search-input" placeholder="Note (optional)" rows="2">${esc(s.note || '')}</textarea>
       </div>
@@ -404,9 +426,10 @@ function wireCheckIn(container, pastor) {
       body: JSON.stringify({
         pastorId: pastor.id,
         status,
+        familyStatus: container.querySelector('input[name="dis-family"]:checked')?.value || 'unknown',
         note: container.querySelector('#dis-note').value.trim() || null,
-        propertyDamageResidence: container.querySelector('#dis-dmg-residence').checked,
-        propertyDamageChurch: container.querySelector('#dis-dmg-church').checked,
+        propertyDamageResidenceStatus: container.querySelector('input[name="dis-dmg-residence"]:checked')?.value || 'unknown',
+        propertyDamageChurchStatus: container.querySelector('input[name="dis-dmg-church"]:checked')?.value || 'unknown',
         notifyCoordination: container.querySelector('#dis-notify').checked,
       }),
     });
@@ -417,6 +440,61 @@ function wireCheckIn(container, pastor) {
     else alert('Failed to save status.');
   });
   loadPhotos(container.querySelector('#dis-checkin-photos'), 'pastor', pastor.id);
+}
+
+// ── One-time post-login self-report prompt ──────────────────────────────────
+// Shown right after login whenever an incident is active and the signed-in
+// pastor has no status row yet for it — checked fresh from the server each
+// time rather than a client-side dismiss flag, so it also goes away the
+// moment anyone (an admin/coordinator included) enters a status for them.
+export async function maybeShowSelfReportPrompt() {
+  if (!lastActive.active) return false;
+  const me = myPastor();
+  if (!me) return false;
+  const res = await fetch('/api/disaster/status', { cache: 'no-store' });
+  const data = res.ok ? await res.json() : { pastorStatuses: [] };
+  if (data.pastorStatuses.some(s => s.pastorId === me.id)) return false;
+  renderSelfReportPrompt(me);
+  return true;
+}
+
+function renderSelfReportPrompt(pastor) {
+  const overlay = document.getElementById('dis-selfreport-overlay');
+  const card = document.getElementById('dis-selfreport-card');
+  card.innerHTML = `
+    <div class="announcement-title">${lastActive.isSimulation ? '⚠️ SIMULATION — ' : ''}${esc(lastActive.name)}</div>
+    <p class="announcement-body">Please take a moment to check in so coordination knows your status.</p>
+    <div class="detail-label">Are you OK?</div>
+    ${triStateRadioHtml('sr-self', SR_PERSON_OPTS, 'unknown')}
+    <div class="detail-label">Is your family OK?</div>
+    ${triStateRadioHtml('sr-family', SR_PERSON_OPTS, 'unknown')}
+    <div class="detail-label">Any property damage at your home or church?</div>
+    ${triStateRadioHtml('sr-damage', SR_YESNO_OPTS, 'unknown')}
+    <div class="detail-cta-row" style="margin-top:16px;">
+      <button type="button" id="dis-selfreport-save" class="support-btn">Submit</button>
+    </div>
+  `;
+  overlay.classList.remove('hidden');
+
+  card.querySelector('#dis-selfreport-save').addEventListener('click', async () => {
+    const btn = card.querySelector('#dis-selfreport-save');
+    btn.disabled = true;
+    const damage = card.querySelector('input[name="sr-damage"]:checked').value;
+    const res = await fetch('/api/disaster/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pastorId: pastor.id,
+        status: card.querySelector('input[name="sr-self"]:checked').value,
+        familyStatus: card.querySelector('input[name="sr-family"]:checked').value,
+        propertyDamageResidenceStatus: damage,
+        propertyDamageChurchStatus: damage,
+      }),
+    });
+    btn.disabled = false;
+    if (res.ok) overlay.classList.add('hidden');
+    else alert('Failed to save check-in — please try again, or use the Disaster tab.');
+  });
 }
 
 // ── Church POD / donation / transport ───────────────────────────────────────
@@ -501,10 +579,21 @@ async function loadPhotos(el, subjectType, subjectId) {
 // ── Admin dashboard ──────────────────────────────────────────────────────────
 function adminDashboardHtml(pastorStatuses, churchStatuses) {
   const damaged = pastorStatuses.filter(s => s.propertyDamageResidence || s.propertyDamageChurch);
+  const notOk = pastorStatuses.filter(s => s.status === 'not_ok' || s.familyStatus === 'not_ok');
+  const okCount = pastorStatuses.filter(s => s.status === 'ok').length;
+  const unknownCount = pastorStatuses.length - okCount - notOk.length;
   return `
     <div class="support-section">
       <div class="support-section-title">Dashboard</div>
-      <p class="support-section-desc">${pastorStatuses.filter(s => s.status === 'ok').length} OK · ${pastorStatuses.length - pastorStatuses.filter(s => s.status === 'ok').length} unknown/not checked in · ${damaged.length} with property damage reported</p>
+      <p class="support-section-desc">${okCount} OK · ${notOk.length} reported NOT OK · ${unknownCount} unknown/not checked in · ${damaged.length} with property damage reported</p>
+      ${notOk.length ? notOk.map(s => `
+        <div class="admin-activity-row">
+          <div class="admin-activity-info">
+            <div class="item-name">⚠️ ${esc(s.displayName)}</div>
+            <div class="item-sub">${[s.status === 'not_ok' ? 'Reported NOT OK' : null, s.familyStatus === 'not_ok' ? 'Family NOT OK' : null].filter(Boolean).join(' · ')}</div>
+            ${s.note ? `<div class="item-sub">${esc(s.note)}</div>` : ''}
+          </div>
+        </div>`).join('') : ''}
       ${damaged.length ? damaged.map(s => `
         <div class="admin-activity-row">
           <div class="admin-activity-info">
@@ -790,6 +879,7 @@ function prepHasAnyAnswer(a) {
 
 export async function renderPreparedness(container, churchName) {
   if (!(lastActive.moduleEnabled || lastActive.canManage)) return;
+  if (!canManageChurchPreparedness(churchName)) return;
   const section = document.createElement('div');
   section.className = 'detail-section';
   section.innerHTML = `<p class="item-sub">Loading…</p>`;
