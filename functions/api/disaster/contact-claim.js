@@ -79,8 +79,16 @@ export async function onRequestPost({ env, data }) {
   // the same candidate in the same instant — the PRIMARY KEY on
   // (incident_id, pastor_id) makes the loser's INSERT fail cleanly.
   for (let attempt = 0; attempt < 3; attempt++) {
+    // Order by least-recently-touched (never-attempted first, via the NULL
+    // check, then oldest attempt first) rather than a fixed alphabetical
+    // order — otherwise releasing a claim (logged or not) leaves nothing
+    // to distinguish "just tried" from "never touched", so the same
+    // alphabetically-first person gets handed right back out again, and a
+    // pastor could get called twice in five minutes.
     const candidate = await env.DB.prepare(`
-      SELECT p.id, p.display_name, p.email, p.primary_phone
+      SELECT p.id, p.display_name, p.email, p.primary_phone,
+        (SELECT MAX(logged_at) FROM pastor_disaster_contact_log l
+         WHERE l.incident_id = ? AND l.pastor_id = p.id) AS last_attempt_at
       FROM pastors p
       WHERE p.active = 1
         AND NOT EXISTS (
@@ -91,15 +99,23 @@ export async function onRequestPost({ env, data }) {
           SELECT 1 FROM pastor_disaster_claims c
           WHERE c.incident_id = ? AND c.pastor_id = p.id
         )
-      ORDER BY p.last_name, p.first_name
+      ORDER BY (last_attempt_at IS NOT NULL), last_attempt_at, p.last_name, p.first_name
       LIMIT 1
-    `).bind(incident.id, incident.id).first();
+    `).bind(incident.id, incident.id, incident.id).first();
     if (!candidate) return json({ claim: null, poolEmpty: true });
 
     try {
       await env.DB.prepare(
         'INSERT INTO pastor_disaster_claims (incident_id, pastor_id, claimed_by) VALUES (?, ?, ?)'
       ).bind(incident.id, candidate.id, user.email).run();
+      // Log the handoff itself, not just its eventual outcome — this is
+      // what makes the recency ordering above work for a claim that gets
+      // released without any disposition, and gives a visible trail of
+      // who was assigned when even before anyone logs what happened.
+      await env.DB.prepare(`
+        INSERT INTO pastor_disaster_contact_log (incident_id, pastor_id, outcome, logged_by)
+        VALUES (?, ?, 'assigned', ?)
+      `).bind(incident.id, candidate.id, user.email).run();
       return json({ claim: claimJson({ ...candidate, claimed_at: new Date().toISOString() }) });
     } catch {
       // Lost the race for this candidate — loop and pick the next one.

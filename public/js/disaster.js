@@ -708,6 +708,7 @@ const ROSTER_GROUP_LABEL = {
 };
 
 const OUTCOME_LABELS = {
+  assigned: 'Assigned, no outcome logged yet',
   no_answer: 'Called — no answer',
   left_voicemail: 'Left voicemail',
   reached_ok: 'Reached — confirmed OK',
