@@ -801,6 +801,7 @@ html, body {
 .support-section.hidden { display: none; }
 
 #dis-coordinator { display: flex; flex-direction: column; gap: 24px; }
+#dis-queue-body { display: flex; flex-direction: column; gap: 10px; }
 
 .support-section-title {
   font-size: 11px;

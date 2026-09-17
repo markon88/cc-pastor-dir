@@ -121,12 +121,14 @@ export async function renderDisasterView(container) {
   renderCoordinatorSection(container.querySelector('#dis-coordinator'));
 
   const body = container.querySelector('#dis-body');
-  const [statusRes, churchRes] = await Promise.all([
+  const [statusRes, churchRes, attemptsRes] = await Promise.all([
     fetch('/api/disaster/status', { cache: 'no-store' }),
     fetch('/api/disaster/church-status', { cache: 'no-store' }),
+    lastActive.canManage ? fetch('/api/disaster/contact-log', { cache: 'no-store' }) : Promise.resolve(null),
   ]);
   const statusData = statusRes.ok ? await statusRes.json() : { pastorStatuses: [] };
   const churchData = churchRes.ok ? await churchRes.json() : { churchStatuses: [] };
+  const attemptsData = attemptsRes?.ok ? await attemptsRes.json() : { attempts: [] };
 
   const me = myPastor();
   const myStatus = me ? statusData.pastorStatuses.find(s => s.pastorId === me.id) : null;
@@ -136,14 +138,18 @@ export async function renderDisasterView(container) {
   body.innerHTML = [
     me ? checkInSectionHtml(myStatus) : '',
     myChurches.map(name => churchStatusSectionHtml(name, churchData.churchStatuses.find(s => s.churchName === name))).join(''),
-    lastActive.canManage ? adminDashboardHtml(statusData.pastorStatuses, churchData.churchStatuses) : '',
+    lastActive.canManage ? contactQueueHtml() : '',
+    lastActive.canManage ? adminDashboardHtml(statusData.pastorStatuses, churchData.churchStatuses, attemptsData.attempts) : '',
     canManageDisasterModule() ? disasterAdminSectionHtml() : '',
   ].join('');
   body.prepend(coordinatorEl);
 
   if (me) wireCheckIn(body, me);
   myChurches.forEach(name => wireChurchStatus(body, name));
-  if (lastActive.canManage) wireContactListGenerator(body, statusData.pastorStatuses, churchData.churchStatuses);
+  if (lastActive.canManage) {
+    wireContactListGenerator(body, statusData.pastorStatuses, churchData.churchStatuses);
+    wireContactQueue(body);
+  }
   if (canManageDisasterModule()) {
     wireDisasterAdminSection(body);
     wireIncidentClose(body);
@@ -590,6 +596,104 @@ async function loadPhotos(el, subjectType, subjectId) {
   el.innerHTML = photos.map(p => `<img src="${esc(p.url)}" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:6px;margin:4px 4px 0 0;">`).join('');
 }
 
+// ── Contact queue ────────────────────────────────────────────────────────────
+// Lets multiple signed-in coordinators work through the "still needs
+// checking" pool without duplicating calls: claiming hands out one pastor
+// at a time, and logging an outcome (with an automatic timestamp and the
+// logged-in user recorded server-side) releases that claim back to the
+// pool for the next person — unless the outcome actually reached them, in
+// which case it resolves their status instead of returning to the pool.
+function contactQueueHtml() {
+  return `
+    <div class="support-section" id="dis-queue">
+      <div class="support-section-title">Work the Queue</div>
+      <p class="support-section-desc">Claim the next pastor who hasn't checked in — this keeps others from calling the same person at the same time.</p>
+      <div id="dis-queue-body"><p class="item-sub">Loading…</p></div>
+    </div>
+  `;
+}
+
+function queueClaimBodyHtml(claim) {
+  if (!claim) {
+    return `<div class="detail-cta-row"><button type="button" id="dis-queue-next" class="support-btn">Assign Me Next</button></div>`;
+  }
+  return `
+    <div class="admin-activity-row">
+      <div class="admin-activity-info">
+        <div class="item-name">${esc(claim.displayName)}</div>
+        <div class="item-sub">${[claim.phone, claim.email].filter(Boolean).map(esc).join(' · ') || 'No contact info on file'}</div>
+      </div>
+    </div>
+    <div class="admin-add-row">
+      <select id="dis-queue-outcome" class="search-input">
+        <option value="no_answer">Called — no answer</option>
+        <option value="left_voicemail">Left voicemail</option>
+        <option value="reached_ok">Reached — confirmed OK</option>
+        <option value="reached_not_ok">Reached — needs attention</option>
+        <option value="other">Other (see note)</option>
+      </select>
+    </div>
+    <div class="admin-add-row">
+      <textarea id="dis-queue-note" class="search-input" placeholder="Note (optional)" rows="2"></textarea>
+    </div>
+    <div class="detail-cta-row">
+      <button type="button" id="dis-queue-log" class="support-btn">Log &amp; Release</button>
+    </div>
+    <div class="detail-cta-row">
+      <button type="button" id="dis-queue-release" class="support-btn support-btn-alt">Release Without Logging</button>
+    </div>
+  `;
+}
+
+function wireContactQueue(container) {
+  const body = container.querySelector('#dis-queue-body');
+  if (!body) return;
+
+  function render(claim) {
+    body.innerHTML = queueClaimBodyHtml(claim);
+    if (!claim) {
+      body.querySelector('#dis-queue-next').addEventListener('click', async () => {
+        const btn = body.querySelector('#dis-queue-next');
+        btn.disabled = true;
+        const res = await fetch('/api/disaster/contact-claim', { method: 'POST' });
+        const data = res.ok ? await res.json() : {};
+        if (data.claim) render(data.claim);
+        else if (data.poolEmpty) body.innerHTML = '<p class="item-sub">🎉 Nobody left to check on right now.</p>';
+        else { btn.disabled = false; alert('Could not claim a pastor — please try again.'); }
+      });
+      return;
+    }
+    body.querySelector('#dis-queue-log').addEventListener('click', async () => {
+      const btn = body.querySelector('#dis-queue-log');
+      btn.disabled = true;
+      const res = await fetch('/api/disaster/contact-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pastorId: claim.pastorId,
+          outcome: body.querySelector('#dis-queue-outcome').value,
+          note: body.querySelector('#dis-queue-note').value.trim() || null,
+        }),
+      });
+      if (res.ok) refresh();
+      else { btn.disabled = false; alert('Failed to log outcome.'); }
+    });
+    body.querySelector('#dis-queue-release').addEventListener('click', async () => {
+      body.querySelector('#dis-queue-release').disabled = true;
+      await fetch('/api/disaster/contact-claim', { method: 'DELETE' });
+      refresh();
+    });
+  }
+
+  async function refresh() {
+    const res = await fetch('/api/disaster/contact-claim', { cache: 'no-store' });
+    const data = res.ok ? await res.json() : { claim: null };
+    render(data.claim);
+  }
+
+  refresh();
+}
+
 // ── Admin dashboard ──────────────────────────────────────────────────────────
 // Full roster (every pastor, not just those who've reported) grouped by
 // urgency — otherwise anyone who hasn't opened the app at all is invisible,
@@ -603,7 +707,15 @@ const ROSTER_GROUP_LABEL = {
   [ROSTER_GROUP_NEEDS_CHECKING]: 'Still needs checking',
 };
 
-function rosterEntry(pastor, s) {
+const OUTCOME_LABELS = {
+  no_answer: 'Called — no answer',
+  left_voicemail: 'Left voicemail',
+  reached_ok: 'Reached — confirmed OK',
+  reached_not_ok: 'Reached — needs attention',
+  other: 'Other outcome',
+};
+
+function rosterEntry(pastor, s, attempt) {
   const flags = s ? [
     s.status === 'not_ok' ? 'Self NOT OK' : null,
     s.familyStatus === 'not_ok' ? 'Family NOT OK' : null,
@@ -613,15 +725,19 @@ function rosterEntry(pastor, s) {
   const group = flags.length ? ROSTER_GROUP_FLAGGED
     : s?.status === 'ok' ? ROSTER_GROUP_OK
     : ROSTER_GROUP_NEEDS_CHECKING;
-  const badge = flags.length ? flags.join(' · ') : group === ROSTER_GROUP_OK ? 'OK' : 'Not yet checked in';
+  let badge = flags.length ? flags.join(' · ') : group === ROSTER_GROUP_OK ? 'OK' : 'Not yet checked in';
+  if (group === ROSTER_GROUP_NEEDS_CHECKING && attempt) {
+    badge += ` · Last attempt: ${OUTCOME_LABELS[attempt.outcome] ?? attempt.outcome} (${esc(attempt.loggedBy)})`;
+  }
   return { pastor, status: s, group, badge };
 }
 
-function adminDashboardHtml(pastorStatuses, churchStatuses) {
+function adminDashboardHtml(pastorStatuses, churchStatuses, attempts = []) {
   const damaged = pastorStatuses.filter(s => s.propertyDamageResidence || s.propertyDamageChurch);
   const byId = new Map(pastorStatuses.map(s => [s.pastorId, s]));
+  const attemptById = new Map(attempts.map(a => [a.pastorId, a]));
   const roster = allPastors
-    .map(p => rosterEntry(p, byId.get(p.id)))
+    .map(p => rosterEntry(p, byId.get(p.id), attemptById.get(p.id)))
     .sort((a, b) => a.group - b.group
       || a.pastor.lastName.localeCompare(b.pastor.lastName)
       || a.pastor.firstName.localeCompare(b.pastor.firstName));
@@ -637,7 +753,7 @@ function adminDashboardHtml(pastorStatuses, churchStatuses) {
       <div class="admin-activity-row">
         <div class="admin-activity-info">
           <div class="item-name">${esc(pastor.displayName)}</div>
-          <div class="item-sub">${esc(badge)}${s?.note ? ' · ' + esc(s.note) : ''}</div>
+          <div class="item-sub">${badge}${s?.note ? ' · ' + esc(s.note) : ''}</div>
         </div>
       </div>`;
   }).join('');
