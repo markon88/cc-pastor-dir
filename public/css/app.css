@@ -234,7 +234,7 @@ html, body {
 }
 .dis-prep-bool-row input[type="radio"] { width: 20px; height: 20px; }
 
-.dis-prep-checklist { flex-direction: column; align-items: flex-start; gap: 12px; }
+.admin-add-row.dis-prep-checklist { flex-direction: column; align-items: flex-start; gap: 12px; }
 .dis-prep-checklist input[type="checkbox"] { width: 20px; height: 20px; }
 
 .modal-close-btn {
