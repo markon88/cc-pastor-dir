@@ -1,5 +1,5 @@
 import { isAdmin } from '../_lib/auth.js';
-import { sendEmail } from '../_lib/email.js';
+import { sendEmail, renderEmail } from '../_lib/email.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -26,14 +26,18 @@ export async function onRequestPost({ request, env, data }) {
   // when RESEND_API_KEY isn't configured, so a notification hiccup never loses one.
   const notifyTo = env.FEEDBACK_NOTIFY_EMAIL || 'hellopastormark@gmail.com';
   const subject = `[CC Pastors] ${TYPE_LABELS[type]}${urgent ? ' (Urgent)' : ''}`;
-  const text = [
-    `From: ${user.name ?? user.email} <${user.email}>`,
-    page ? `Page: ${page}` : null,
-    '',
-    message.trim(),
-  ].filter(Boolean).join('\n');
+  const { html, text } = renderEmail({
+    title: subject,
+    heading: `${TYPE_LABELS[type]}${urgent ? ' — Urgent' : ''}`,
+    rows: [
+      { label: 'From', value: `${user.name ?? user.email} <${user.email}>` },
+      ...(page ? [{ label: 'Page', value: page }] : []),
+    ],
+    paragraphs: [message.trim()],
+    footer: 'Sent from the Report an Issue form in CC Pastors.',
+  });
   try {
-    await sendEmail(env, { to: notifyTo, subject, text });
+    await sendEmail(env, { to: notifyTo, subject, html, text });
   } catch (err) {
     console.error('feedback notify failed', err);
   }

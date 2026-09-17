@@ -1,5 +1,5 @@
 import { isAdmin, isDisasterAdmin, resolveIdentityEmail } from '../../_lib/auth.js';
-import { sendEmail } from '../../_lib/email.js';
+import { sendEmail, renderEmail } from '../../_lib/email.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -79,16 +79,21 @@ export async function onRequestPost({ request, env, data }) {
     const pastorRow = self ?? await env.DB.prepare('SELECT display_name FROM pastors WHERE id = ?').bind(pastorId).first();
     const damageFlag = propertyDamageResidence || propertyDamageChurch;
     const subject = `${damageFlag ? '[Property Damage] ' : ''}${incident.name}: ${pastorRow?.display_name ?? pastorId} — ${status.toUpperCase()}`;
-    const lines = [
-      incident.is_simulation ? '*** THIS IS A SIMULATION / DRILL — NOT AN ACTUAL INCIDENT ***' : null,
-      `Status: ${status}`,
-      `Reported by: ${user.email}${self ? '' : ' (on behalf of ' + (pastorRow?.display_name ?? pastorId) + ')'}`,
-      propertyDamageResidence ? 'Property damage reported at residence.' : null,
-      propertyDamageChurch    ? 'Property damage reported at church.'    : null,
-      note ? `Note: ${note}` : null,
-    ].filter(Boolean);
+    const { html, text } = renderEmail({
+      title: subject,
+      heading: incident.name,
+      intro: incident.is_simulation ? 'THIS IS A SIMULATION / DRILL — NOT AN ACTUAL INCIDENT' : null,
+      rows: [
+        { label: 'Status', value: status.toUpperCase() },
+        { label: 'Reported by', value: `${user.email}${self ? '' : ' (on behalf of ' + (pastorRow?.display_name ?? pastorId) + ')'}` },
+        ...(propertyDamageResidence ? [{ label: 'Property damage', value: 'Reported at residence' }] : []),
+        ...(propertyDamageChurch ? [{ label: 'Property damage', value: 'Reported at church' }] : []),
+        ...(note ? [{ label: 'Note', value: note }] : []),
+      ],
+      footer: 'Sent by the CC Pastors disaster-response module.',
+    });
     try {
-      await sendEmail(env, { to, subject, text: lines.join('\n') });
+      await sendEmail(env, { to, subject, html, text });
     } catch (err) {
       // Status is already saved; don't fail the request over a notification hiccup.
       console.error('disaster status notify failed', err);
