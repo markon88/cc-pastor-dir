@@ -591,31 +591,62 @@ async function loadPhotos(el, subjectType, subjectId) {
 }
 
 // ── Admin dashboard ──────────────────────────────────────────────────────────
+// Full roster (every pastor, not just those who've reported) grouped by
+// urgency — otherwise anyone who hasn't opened the app at all is invisible,
+// and there's no way to answer "who still needs checked on".
+const ROSTER_GROUP_FLAGGED = 0;
+const ROSTER_GROUP_OK = 1;
+const ROSTER_GROUP_NEEDS_CHECKING = 2;
+const ROSTER_GROUP_LABEL = {
+  [ROSTER_GROUP_FLAGGED]: '⚠️ Flagged',
+  [ROSTER_GROUP_OK]: '✅ OK',
+  [ROSTER_GROUP_NEEDS_CHECKING]: 'Still needs checking',
+};
+
+function rosterEntry(pastor, s) {
+  const flags = s ? [
+    s.status === 'not_ok' ? 'Self NOT OK' : null,
+    s.familyStatus === 'not_ok' ? 'Family NOT OK' : null,
+    s.propertyDamageResidence ? 'Residence damage' : null,
+    s.propertyDamageChurch ? 'Church damage' : null,
+  ].filter(Boolean) : [];
+  const group = flags.length ? ROSTER_GROUP_FLAGGED
+    : s?.status === 'ok' ? ROSTER_GROUP_OK
+    : ROSTER_GROUP_NEEDS_CHECKING;
+  const badge = flags.length ? flags.join(' · ') : group === ROSTER_GROUP_OK ? 'OK' : 'Not yet checked in';
+  return { pastor, status: s, group, badge };
+}
+
 function adminDashboardHtml(pastorStatuses, churchStatuses) {
   const damaged = pastorStatuses.filter(s => s.propertyDamageResidence || s.propertyDamageChurch);
-  const notOk = pastorStatuses.filter(s => s.status === 'not_ok' || s.familyStatus === 'not_ok');
-  const okCount = pastorStatuses.filter(s => s.status === 'ok').length;
-  const unknownCount = pastorStatuses.length - okCount - notOk.length;
+  const byId = new Map(pastorStatuses.map(s => [s.pastorId, s]));
+  const roster = allPastors
+    .map(p => rosterEntry(p, byId.get(p.id)))
+    .sort((a, b) => a.group - b.group
+      || a.pastor.lastName.localeCompare(b.pastor.lastName)
+      || a.pastor.firstName.localeCompare(b.pastor.firstName));
+
+  const counts = { [ROSTER_GROUP_FLAGGED]: 0, [ROSTER_GROUP_OK]: 0, [ROSTER_GROUP_NEEDS_CHECKING]: 0 };
+  roster.forEach(r => counts[r.group]++);
+
+  let lastGroup = null;
+  const rosterRows = roster.map(({ pastor, status: s, group, badge }) => {
+    const header = group !== lastGroup ? `<div class="detail-label" style="margin-top:12px;">${ROSTER_GROUP_LABEL[group]} (${counts[group]})</div>` : '';
+    lastGroup = group;
+    return `${header}
+      <div class="admin-activity-row">
+        <div class="admin-activity-info">
+          <div class="item-name">${esc(pastor.displayName)}</div>
+          <div class="item-sub">${esc(badge)}${s?.note ? ' · ' + esc(s.note) : ''}</div>
+        </div>
+      </div>`;
+  }).join('');
+
   return `
     <div class="support-section">
       <div class="support-section-title">Dashboard</div>
-      <p class="support-section-desc">${okCount} OK · ${notOk.length} reported NOT OK · ${unknownCount} unknown/not checked in · ${damaged.length} with property damage reported</p>
-      ${notOk.length ? notOk.map(s => `
-        <div class="admin-activity-row">
-          <div class="admin-activity-info">
-            <div class="item-name">⚠️ ${esc(s.displayName)}</div>
-            <div class="item-sub">${[s.status === 'not_ok' ? 'Reported NOT OK' : null, s.familyStatus === 'not_ok' ? 'Family NOT OK' : null].filter(Boolean).join(' · ')}</div>
-            ${s.note ? `<div class="item-sub">${esc(s.note)}</div>` : ''}
-          </div>
-        </div>`).join('') : ''}
-      ${damaged.length ? damaged.map(s => `
-        <div class="admin-activity-row">
-          <div class="admin-activity-info">
-            <div class="item-name">${esc(s.displayName)}</div>
-            <div class="item-sub">${[s.propertyDamageResidence ? 'Residence damage' : null, s.propertyDamageChurch ? 'Church damage' : null].filter(Boolean).join(' · ')}</div>
-            ${s.note ? `<div class="item-sub">${esc(s.note)}</div>` : ''}
-          </div>
-        </div>`).join('') : ''}
+      <p class="support-section-desc">${counts[ROSTER_GROUP_OK]} OK · ${counts[ROSTER_GROUP_FLAGGED]} flagged · ${counts[ROSTER_GROUP_NEEDS_CHECKING]} still need checking · ${damaged.length} with property damage reported</p>
+      <div class="dis-roster-list">${rosterRows}</div>
     </div>
     <div class="support-section">
       <div class="support-section-title">Generate Contact List</div>

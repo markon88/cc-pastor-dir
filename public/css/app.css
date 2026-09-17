@@ -241,6 +241,9 @@ html, body {
 /* ── Tri-state self-report radios (Yes/No/Unknown) ───────────────────────── */
 .admin-add-row.dis-tristate-row { flex-wrap: wrap; row-gap: 10px; }
 
+/* ── Disaster admin check-in roster ──────────────────────────────────────── */
+.dis-roster-list { max-height: 420px; overflow-y: auto; margin-top: 4px; }
+
 /* ── One-time post-login disaster self-report prompt ─────────────────────── */
 .dis-selfreport-card {
   text-align: left;
