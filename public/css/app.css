@@ -257,19 +257,25 @@ html, body {
 .dis-coord-picker-card {
   text-align: left;
   max-width: 420px;
+  width: 100%;
   position: relative;
   padding-top: 30px;
-  max-height: 85vh;
-  overflow-y: auto;
+  height: 85vh;
+  max-height: 640px;
+  display: flex;
+  flex-direction: column;
 }
 
-.dis-coord-picker-card .search-input { margin-top: 10px; font-size: 16px; }
+.dis-coord-picker-card .search-input { margin-top: 10px; font-size: 16px; flex-shrink: 0; }
+
+.dis-coord-selected-wrap { flex-shrink: 0; }
+.dis-coord-selected-list { max-height: 130px; overflow-y: auto; }
 
 .dis-coord-picker-list {
-  max-height: 240px;
+  flex: 1;
   overflow-y: auto;
-  margin-top: 4px;
-  border-bottom: 1px solid var(--border);
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
 }
 
 .dis-coord-pick-item {
@@ -279,8 +285,18 @@ html, body {
   gap: 12px;
 }
 
-.dis-coord-manual { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
-.dis-coord-manual .admin-add-row { margin-top: 8px; }
+.dis-coord-manual-link { flex-shrink: 0; margin-top: 12px; }
+
+/* ── "Not in the app" manual-add screen ──────────────────────────────────── */
+.dis-coord-manual-card {
+  text-align: left;
+  max-width: 420px;
+  width: 100%;
+  position: relative;
+  padding-top: 30px;
+}
+.dis-coord-manual-card .admin-add-row { margin-top: 14px; }
+.dis-coord-manual-card .admin-add-row:first-of-type { margin-top: 0; }
 
 #banners { flex-shrink: 0; }
 

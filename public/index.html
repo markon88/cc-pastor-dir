@@ -133,26 +133,38 @@
   </div>
 
   <div id="dis-coord-picker-overlay" class="announcement-overlay hidden">
-    <div class="announcement-card dis-coord-picker-card">
+    <div class="announcement-card dis-coord-picker-card" id="dis-coord-picker-card">
       <button type="button" id="dis-coord-picker-close" class="modal-close-btn" aria-label="Close">&times;</button>
       <div class="detail-label">Add Coordinator</div>
+
+      <div id="dis-coord-selected-wrap" class="dis-coord-selected-wrap">
+        <div class="detail-label" style="margin-top:6px;">Selected (<span id="dis-coord-selected-count">0</span>)</div>
+        <div id="dis-coord-selected-list" class="dis-coord-selected-list"></div>
+      </div>
+
       <input type="search" id="dis-coord-search" class="search-input" placeholder="Search pastors by name…" autocomplete="off">
-      <div id="dis-coord-picker-list" class="dis-coord-picker-list"></div>
-      <div class="dis-coord-manual">
-        <div class="detail-label">Not in the app? Add them manually</div>
-        <div class="admin-add-row">
-          <input type="text" id="dis-coord-manual-first" class="search-input" placeholder="First name" autocomplete="off">
-          <input type="text" id="dis-coord-manual-last" class="search-input" placeholder="Last name" autocomplete="off">
-        </div>
-        <div class="admin-add-row">
-          <input type="email" id="dis-coord-manual-email" class="search-input" placeholder="Email" autocomplete="off">
-        </div>
-        <div class="admin-add-row">
-          <input type="tel" id="dis-coord-manual-phone" class="search-input" placeholder="Phone" autocomplete="off">
-        </div>
-        <div class="detail-cta-row">
-          <button type="button" id="dis-coord-manual-add" class="support-btn">Add</button>
-        </div>
+      <div id="dis-coord-picker-list" class="dis-coord-picker-list item-list"></div>
+
+      <div class="detail-cta-row dis-coord-manual-link">
+        <button type="button" id="dis-coord-manual-open" class="support-btn support-btn-alt">Can't find them? Add someone manually</button>
+      </div>
+    </div>
+
+    <div class="announcement-card dis-coord-manual-card hidden" id="dis-coord-manual-card">
+      <button type="button" id="dis-coord-manual-back" class="modal-close-btn" aria-label="Back">&times;</button>
+      <div class="detail-label">Add Someone Not In The App</div>
+      <div class="admin-add-row">
+        <input type="text" id="dis-coord-manual-first" class="search-input" placeholder="First name" autocomplete="off">
+        <input type="text" id="dis-coord-manual-last" class="search-input" placeholder="Last name" autocomplete="off">
+      </div>
+      <div class="admin-add-row">
+        <input type="email" id="dis-coord-manual-email" class="search-input" placeholder="Email" autocomplete="off">
+      </div>
+      <div class="admin-add-row">
+        <input type="tel" id="dis-coord-manual-phone" class="search-input" placeholder="Phone" autocomplete="off">
+      </div>
+      <div class="detail-cta-row">
+        <button type="button" id="dis-coord-manual-add" class="support-btn">Add</button>
       </div>
     </div>
   </div>

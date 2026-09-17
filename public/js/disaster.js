@@ -4,6 +4,8 @@
 // everything here is fetched live with cache: 'no-store', since stale
 // disaster status is worse than no status.
 
+import { searchPastors } from './search.js';
+
 const POD_SUPPLIES = [
   ['water', 'Water'],
   ['toiletPaper', 'Toilet Paper'],
@@ -235,29 +237,45 @@ function coordinatorRowsHtml() {
   `).join('');
 }
 
+// Renders the persistent "who's already added" list — shown both on the
+// underlying page (#dis-new-coord-list) and, while it's open, pinned inside
+// the picker modal itself (#dis-coord-selected-list) so selecting doesn't
+// bump a just-added name out of view once the search query changes.
 function renderSelectedCoordinators() {
-  const el = document.getElementById('dis-new-coord-list');
-  if (!el) return;
-  el.innerHTML = coordinatorRowsHtml();
-  el.querySelectorAll('.dis-new-coord-remove').forEach(btn => {
-    btn.addEventListener('click', () => {
-      newIncidentCoordinators.splice(Number(btn.dataset.index), 1);
-      renderSelectedCoordinators();
+  const rowsHtml = coordinatorRowsHtml();
+  [
+    { listId: 'dis-new-coord-list' },
+    { listId: 'dis-coord-selected-list', countId: 'dis-coord-selected-count' },
+  ].forEach(({ listId, countId }) => {
+    const el = document.getElementById(listId);
+    if (!el) return;
+    el.innerHTML = rowsHtml;
+    el.querySelectorAll('.dis-new-coord-remove').forEach(btn => {
+      btn.addEventListener('click', () => {
+        newIncidentCoordinators.splice(Number(btn.dataset.index), 1);
+        renderSelectedCoordinators();
+        if (document.getElementById('dis-coord-picker-overlay') && !document.getElementById('dis-coord-picker-overlay').classList.contains('hidden')) {
+          renderCoordinatorPickList(document.getElementById('dis-coord-search').value);
+        }
+      });
     });
+    if (countId) document.getElementById(countId).textContent = newIncidentCoordinators.length;
   });
+  const selectedWrap = document.getElementById('dis-coord-selected-wrap');
+  if (selectedWrap) selectedWrap.classList.toggle('hidden', newIncidentCoordinators.length === 0);
 }
 
+// Shows the full pastor directory by default (like the main Pastors tab),
+// filtered live as you type — nothing is hidden behind "start typing to
+// search". Selected pastors stay in the list (tagged "Added") rather than
+// disappearing, since the persistent Selected section above already covers
+// "who's added" — this list is just "who can I add or remove".
 function renderCoordinatorPickList(query) {
   const listEl = document.getElementById('dis-coord-picker-list');
-  const q = query.trim().toLowerCase();
-  if (!q) {
-    listEl.innerHTML = '<p class="item-sub">Start typing a name to search…</p>';
-    return;
-  }
   const selectedPastorIds = new Set(newIncidentCoordinators.filter(c => c.pastorId).map(c => c.pastorId));
-  const matches = allPastors
-    .filter(p => p.displayName.toLowerCase().includes(q))
-    .slice(0, 25);
+  const matches = searchPastors(allPastors, query)
+    .slice()
+    .sort((a, b) => a.lastName.localeCompare(b.lastName) || a.firstName.localeCompare(b.firstName));
   if (!matches.length) {
     listEl.innerHTML = '<p class="item-sub">No pastors found.</p>';
     return;
@@ -297,13 +315,21 @@ function renderCoordinatorPickList(query) {
   });
 }
 
+function showManualAddScreen(show) {
+  document.getElementById('dis-coord-picker-card').classList.toggle('hidden', show);
+  document.getElementById('dis-coord-manual-card').classList.toggle('hidden', !show);
+  if (show) document.getElementById('dis-coord-manual-first').focus();
+}
+
 function ensureCoordPickerWired() {
   if (coordPickerWired) return;
   coordPickerWired = true;
   const overlay = document.getElementById('dis-coord-picker-overlay');
   overlay.addEventListener('click', e => { if (e.target === overlay) closeCoordinatorPicker(); });
   document.getElementById('dis-coord-picker-close').addEventListener('click', closeCoordinatorPicker);
+  document.getElementById('dis-coord-manual-back').addEventListener('click', () => showManualAddScreen(false));
   document.getElementById('dis-coord-search').addEventListener('input', e => renderCoordinatorPickList(e.target.value));
+  document.getElementById('dis-coord-manual-open').addEventListener('click', () => showManualAddScreen(true));
   document.getElementById('dis-coord-manual-add').addEventListener('click', () => {
     const firstName = document.getElementById('dis-coord-manual-first').value.trim();
     const lastName = document.getElementById('dis-coord-manual-last').value.trim();
@@ -316,13 +342,16 @@ function ensureCoordPickerWired() {
     document.getElementById('dis-coord-manual-last').value = '';
     document.getElementById('dis-coord-manual-email').value = '';
     document.getElementById('dis-coord-manual-phone').value = '';
+    showManualAddScreen(false);
   });
 }
 
 function openCoordinatorPicker() {
   ensureCoordPickerWired();
   document.getElementById('dis-coord-picker-overlay').classList.remove('hidden');
+  showManualAddScreen(false);
   document.getElementById('dis-coord-search').value = '';
+  renderSelectedCoordinators();
   renderCoordinatorPickList('');
   document.getElementById('dis-coord-search').focus();
 }
