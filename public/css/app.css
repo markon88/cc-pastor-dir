@@ -254,6 +254,13 @@ html, body {
 }
 
 /* ── Coordinator Picker Modal ─────────────────────────────────────────────── */
+/* .hidden{display:none} is defined earlier in this file but loses the
+   cascade tie against the equal-specificity .dis-coord-picker-card rule
+   below (source order), so it never actually hid the card — chain the
+   classes here to force it to win regardless of source order. */
+.dis-coord-picker-card.hidden,
+.dis-coord-manual-card.hidden { display: none; }
+
 .dis-coord-picker-card {
   text-align: left;
   max-width: 420px;
@@ -286,6 +293,7 @@ html, body {
 }
 
 .dis-coord-manual-link { flex-shrink: 0; margin-top: 12px; }
+.dis-coord-picker-card .detail-cta-row + .detail-cta-row { flex-shrink: 0; margin-top: 10px; }
 
 /* ── "Not in the app" manual-add screen ──────────────────────────────────── */
 .dis-coord-manual-card {

@@ -327,6 +327,7 @@ function ensureCoordPickerWired() {
   const overlay = document.getElementById('dis-coord-picker-overlay');
   overlay.addEventListener('click', e => { if (e.target === overlay) closeCoordinatorPicker(); });
   document.getElementById('dis-coord-picker-close').addEventListener('click', closeCoordinatorPicker);
+  document.getElementById('dis-coord-picker-done').addEventListener('click', closeCoordinatorPicker);
   document.getElementById('dis-coord-manual-back').addEventListener('click', () => showManualAddScreen(false));
   document.getElementById('dis-coord-search').addEventListener('input', e => renderCoordinatorPickList(e.target.value));
   document.getElementById('dis-coord-manual-open').addEventListener('click', () => showManualAddScreen(true));
