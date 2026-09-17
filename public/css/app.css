@@ -218,10 +218,12 @@ html, body {
   font-size: 15px;
   color: var(--text-sub);
   line-height: 1.5;
-  margin-bottom: 4px;
+  margin-bottom: 18px;
 }
 
 .dis-prep-card .search-input { font-size: 16px; }
+.dis-prep-card .admin-add-row { margin-top: 16px; }
+.dis-prep-card .admin-add-row:first-of-type { margin-top: 0; }
 .dis-prep-bool-row { gap: 20px; }
 .dis-prep-bool-row label,
 .dis-prep-card .admin-add-row label {
@@ -1077,7 +1079,7 @@ html, body {
 }
 .admin-activity-avatar-placeholder { background: var(--border); }
 
-.admin-activity-info { flex: 1; min-width: 0; }
+.admin-activity-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .admin-activity-info .item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .admin-version-badge {
