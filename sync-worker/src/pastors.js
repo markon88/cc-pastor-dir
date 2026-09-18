@@ -175,6 +175,7 @@ export async function syncPastors(env) {
   // so a pastor moving between churches drops the old link and gains the new one.
   let churchLinksUpdated = 0;
   let volunteersUpdated = 0;
+  const pastorsWithChurchThisRun = new Set();
   for (const org of orgList) {
     const orgCode = org['@_org_code'];
     const orgId   = String(org['@_id'] ?? '');
@@ -199,6 +200,7 @@ export async function syncPastors(env) {
       await env.DB.prepare(
         'INSERT INTO pastor_churches (pastor_id, church_org_code) VALUES (?, ?)'
       ).bind(pastorId, church.org_code).run();
+      pastorsWithChurchThisRun.add(pastorId);
     }
     churchLinksUpdated++;
 
@@ -251,13 +253,25 @@ export async function syncPastors(env) {
     });
   } else {
     for (const p of activeSynced.results) {
-      if (officerMap.has(p.eadventist_id)) continue;
-      await env.DB.prepare('UPDATE pastors SET active = 0 WHERE id = ?').bind(p.id).run();
-      await env.DB.prepare('DELETE FROM pastor_churches WHERE pastor_id = ?').bind(p.id).run();
-      deactivatedPastors.push({ id: p.id, firstName: p.first_name, lastName: p.last_name, eId: p.eadventist_id });
-      await logSync(env, 'pastors', 'deactivate', `${p.first_name} ${p.last_name}`, {
-        eId: p.eadventist_id, note: 'no longer listed as a pastor in eAdventist',
-      });
+      if (!officerMap.has(p.eadventist_id)) {
+        // Dropped from the feed entirely (moved conference, resigned, retired, etc.)
+        await env.DB.prepare('UPDATE pastors SET active = 0 WHERE id = ?').bind(p.id).run();
+        await env.DB.prepare('DELETE FROM pastor_churches WHERE pastor_id = ?').bind(p.id).run();
+        deactivatedPastors.push({ id: p.id, firstName: p.first_name, lastName: p.last_name, eId: p.eadventist_id, reason: 'dropped' });
+        await logSync(env, 'pastors', 'deactivate', `${p.first_name} ${p.last_name}`, {
+          eId: p.eadventist_id, note: 'no longer listed as a pastor in eAdventist',
+        });
+      } else if (!pastorsWithChurchThisRun.has(p.id)) {
+        // Still an officer somewhere in the feed, but not tied to any church we
+        // track (e.g. eAdventist kept them under a conference-office record after
+        // they left their congregation) — churchless pastors clutter the active
+        // directory, so treat this the same as being dropped.
+        await env.DB.prepare('UPDATE pastors SET active = 0 WHERE id = ?').bind(p.id).run();
+        deactivatedPastors.push({ id: p.id, firstName: p.first_name, lastName: p.last_name, eId: p.eadventist_id, reason: 'no_church' });
+        await logSync(env, 'pastors', 'deactivate', `${p.first_name} ${p.last_name}`, {
+          eId: p.eadventist_id, note: 'still in eAdventist but no longer associated with any church',
+        });
+      }
     }
   }
 
