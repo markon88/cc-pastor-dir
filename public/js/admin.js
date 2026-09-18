@@ -322,10 +322,13 @@ async function runManualSync() {
 
   try {
     const res = await fetch('/api/admin/sync-trigger', { method: 'POST' });
-    if (!res.ok) throw new Error();
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
     await loadSyncLog();
-  } catch {
-    alert('Sync failed to run — please try again.');
+  } catch (err) {
+    alert(`Sync failed to run: ${err.message}`);
   } finally {
     btn.disabled = false;
     btn.textContent = originalLabel;
