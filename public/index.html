@@ -89,14 +89,14 @@
     </nav>
   </div>
 
-  <div id="announcement-overlay" class="announcement-overlay hidden">
-    <div class="announcement-card">
-      <div class="announcement-title">👋 Support has moved</div>
-      <p class="announcement-body">
-        Support now lives in the new profile menu, top right — along with a new
-        <strong>Conference Office</strong> directory and <strong>My AMA Schedule</strong>.
-      </p>
-      <button id="announcement-dismiss" class="announcement-btn">Got it</button>
+  <div id="welcome-overlay" class="announcement-overlay hidden">
+    <div class="announcement-card welcome-card">
+      <div id="welcome-steps"></div>
+      <div class="welcome-dots" id="welcome-dots"></div>
+      <div class="welcome-actions">
+        <button id="welcome-skip" class="support-btn support-btn-alt">Skip</button>
+        <button id="welcome-next" class="support-btn">Next</button>
+      </div>
     </div>
   </div>
 

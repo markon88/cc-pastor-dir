@@ -12,6 +12,7 @@ import { setupFeedbackModal } from './feedback.js';
 import { renderAdminView } from './admin.js';
 import { checkAmaBanner, initSchedule } from './ama-meetings.js';
 import { initDisaster, checkDisasterActive, renderDisasterView, maybeShowSelfReportPrompt } from './disaster.js';
+import { showTour, buildOnboardingSteps } from './welcome.js';
 
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -89,11 +90,11 @@ async function init() {
   renderTab('pastors');
   checkForUpdates();
   await refreshDisasterTab();
-  // An urgent disaster self-report prompt takes priority over — and
-  // replaces — the routine "what's new" announcement, since both are
-  // one-time, attention-grabbing overlays shown right after login.
-  const showedSelfReportPrompt = await maybeShowSelfReportPrompt();
-  if (!showedSelfReportPrompt) showProfileMenuAnnouncement();
+  // An urgent disaster self-report prompt takes priority over routine
+  // announcements, since both are one-time, attention-grabbing overlays
+  // shown right after login.
+  await maybeShowSelfReportPrompt();
+  await runPendingAnnouncements(currentUser, { volunteersEnabled });
 
   // Re-poll periodically so tabs gated by an admin-toggleable module flag
   // appear/disappear live without requiring a reload.
@@ -140,26 +141,33 @@ function getMyPastorRecord() {
 }
 
 // ── Announcements ────────────────────────────────────────────────────────────
-// Shown once per announcement, not on every login. ANNOUNCEMENT_ID identifies
-// *this* announcement's content — give it a new value (and update the
-// overlay's markup in index.html) whenever there's something new to tell
-// people, so it reappears once for the new message but stays dismissed for
-// anyone who already saw it.
-const ANNOUNCEMENT_ID = 'support-moved-2026-09';
-const ANNOUNCEMENT_DISMISSED_KEY = 'dismissedAnnouncement';
+// One-time overlays — the full onboarding tour, or a quick "what's new" card
+// for a single feature — shown once per pastor account and tracked in the
+// DB (see migrations/017_seen_announcements.sql), not per device. That means
+// a new entry here reaches *everyone* who hasn't seen it, including pastors
+// who logged in long before it existed, not just brand-new signups.
+//
+// To announce something new: add an entry with a fresh id and its `steps`
+// (an array of {icon, title, body} — one entry renders as a single card,
+// several as a swipeable tour). Old entries can be deleted once they're no
+// longer useful to keep around; their id simply stops being checked.
+function getAnnouncementQueue(user, opts) {
+  return [
+    { id: 'welcome-tour-2026-09', steps: buildOnboardingSteps(user, opts) },
+  ];
+}
 
-function showProfileMenuAnnouncement() {
-  let dismissed = null;
-  try { dismissed = localStorage.getItem(ANNOUNCEMENT_DISMISSED_KEY); } catch {}
-  if (dismissed === ANNOUNCEMENT_ID) return;
-
-  const overlay = document.getElementById('announcement-overlay');
-  overlay.classList.remove('hidden');
-
-  document.getElementById('announcement-dismiss').addEventListener('click', () => {
-    overlay.classList.add('hidden');
-    try { localStorage.setItem(ANNOUNCEMENT_DISMISSED_KEY, ANNOUNCEMENT_ID); } catch {}
-  }, { once: true });
+async function runPendingAnnouncements(user, opts) {
+  const seen = new Set(user.seenAnnouncements ?? []);
+  for (const { id, steps } of getAnnouncementQueue(user, opts)) {
+    if (seen.has(id)) continue;
+    await showTour(steps);
+    fetch('/api/announcements/seen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+  }
 }
 
 function showLoginScreen() {

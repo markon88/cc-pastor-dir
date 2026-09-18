@@ -167,6 +167,34 @@ html, body {
   cursor: pointer;
 }
 
+/* ── First-Login Welcome Tour ────────────────────────────────────────────── */
+.welcome-card { max-width: 360px; }
+
+.welcome-step-icon {
+  font-size: 40px;
+  margin-bottom: 10px;
+}
+
+.welcome-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.welcome-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.welcome-dot.active { background: var(--primary); }
+
+.welcome-actions { display: flex; gap: 8px; }
+.welcome-actions .support-btn,
+.welcome-actions .support-btn-alt { flex: 1; margin-bottom: 0; }
+
 /* ── Feedback Modal ─────────────────────────────────────────────────────── */
 .feedback-card { text-align: left; max-width: 380px; }
 .feedback-card .announcement-title { text-align: center; }

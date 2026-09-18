@@ -18,6 +18,13 @@ CREATE TABLE IF NOT EXISTS user_activity (
   platform    TEXT
 );
 
+CREATE TABLE IF NOT EXISTS seen_announcements (
+  email           TEXT NOT NULL,
+  announcement_id TEXT NOT NULL,
+  seen_at         TEXT DEFAULT (datetime('now')),
+  PRIMARY KEY (email, announcement_id)
+);
+
 CREATE TABLE IF NOT EXISTS pastors (
   id             TEXT PRIMARY KEY,
   eadventist_id  TEXT,

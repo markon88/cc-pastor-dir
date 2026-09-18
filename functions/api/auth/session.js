@@ -52,6 +52,10 @@ export async function onRequestGet({ request, env }) {
     ? await env.DB.prepare('SELECT directory_email FROM allowed_emails WHERE email = ?').bind(user.email).first()
     : null;
 
+  const seenRows = env.DB
+    ? await env.DB.prepare('SELECT announcement_id FROM seen_announcements WHERE email = ?').bind(user.email).all()
+    : null;
+
   return new Response(JSON.stringify({
     email:          user.email,
     name:           user.name,
@@ -59,5 +63,6 @@ export async function onRequestGet({ request, env }) {
     isAdmin:        isAdmin(user.email, env),
     isDisasterAdmin: env.DB ? await isStandingDisasterAdmin(user.email, env.DB) : false,
     directoryEmail: mapping?.directory_email ?? null,
+    seenAnnouncements: (seenRows?.results ?? []).map(r => r.announcement_id),
   }), { headers });
 }

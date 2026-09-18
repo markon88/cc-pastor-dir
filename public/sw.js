@@ -1,6 +1,6 @@
 // Bump CACHE_NAME with every app version bump — changing this string is what
 // tells the browser a new service worker exists and triggers an update install.
-const CACHE_NAME = 'pastor-dir-v10.13.2';
+const CACHE_NAME = 'pastor-dir-v10.14.0';
 const ASSETS = [
   '/',
   '/index.html',
@@ -23,6 +23,7 @@ const ASSETS = [
   '/js/feedback.js',
   '/js/admin.js',
   '/js/disaster.js',
+  '/js/welcome.js',
   '/manifest.json',
 ];
 
