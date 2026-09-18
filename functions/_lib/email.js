@@ -1,7 +1,8 @@
 // Server-side email via Resend (https://resend.com). Requires RESEND_API_KEY
-// (wrangler secret put RESEND_API_KEY) and a verified sending domain/address
-// in RESEND_FROM. Used for disaster-response coordination notifications and
-// "Report an Issue" alerts — see renderEmail() below for the shared template.
+// (wrangler pages secret put RESEND_API_KEY) — sends from mail.churchtoolbox.app
+// (verified in Resend) by default, or override via RESEND_FROM. Used for
+// disaster-response coordination notifications and "Report an Issue" alerts
+// — see renderEmail() below for the shared template.
 export async function sendEmail(env, { to, subject, html, text }) {
   if (!env.RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured');
   const recipients = Array.isArray(to) ? to : String(to).split(',').map(e => e.trim()).filter(Boolean);
@@ -14,7 +15,7 @@ export async function sendEmail(env, { to, subject, html, text }) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: env.RESEND_FROM || 'Pastor Directory <disaster@carolinasda.org>',
+      from: env.RESEND_FROM || 'CC Pastors <notify@mail.churchtoolbox.app>',
       to: recipients,
       subject,
       ...(html ? { html } : {}),
