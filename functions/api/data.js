@@ -8,7 +8,7 @@ export async function onRequestGet({ env }) {
     { results: pastorRows },
     { results: phoneRows },
     { results: pcRows },
-    { results: pgRows },
+    { results: cagRows },
     { results: churchRows },
     { results: groupRows },
     { results: versionRows },
@@ -18,7 +18,7 @@ export async function onRequestGet({ env }) {
     env.DB.prepare('SELECT id, last_name, first_name, display_name, email, birthday, street, city, state, zip, primary_phone, photo_url FROM pastors WHERE active = 1 ORDER BY last_name, first_name'),
     env.DB.prepare('SELECT pastor_id, number, mobile, confidential FROM pastor_phones'),
     env.DB.prepare('SELECT pastor_id, church_org_code FROM pastor_churches'),
-    env.DB.prepare('SELECT pastor_id, group_id FROM pastor_ama_groups'),
+    env.DB.prepare('SELECT church_org_code, group_id FROM church_ama_groups'),
     env.DB.prepare('SELECT name, org_code, street, city, state, zip, county, membership, photo_url, website, phone, email, service_times, driving_directions FROM churches ORDER BY name'),
     env.DB.prepare('SELECT id, name, leader_id FROM ama_groups ORDER BY sort_order, name'),
     env.DB.prepare("SELECT value FROM meta WHERE key = 'version'"),
@@ -44,11 +44,19 @@ export async function onRequestGet({ env }) {
     if (churchName) (churchesByPastor[r.pastor_id] ??= []).push(churchName);
   }
 
+  // AMA group is derived from the church(es) a pastor currently serves, not
+  // a hard link to the pastor — so it follows automatically when a pastor
+  // moves, retires, or is replaced instead of going stale (see
+  // migrations/016_church_ama_groups.sql).
+  const groupByChurchOrgCode = Object.fromEntries(cagRows.map(r => [r.church_org_code, r.group_id]));
+
   const groupsByPastor = {};
   const pastorsByGroup = {};
-  for (const r of pgRows) {
-    (groupsByPastor[r.pastor_id] ??= []).push(r.group_id);
-    (pastorsByGroup[r.group_id]  ??= []).push(r.pastor_id);
+  for (const r of pcRows) {
+    const groupId = groupByChurchOrgCode[r.church_org_code];
+    if (!groupId) continue;
+    if (!(groupsByPastor[r.pastor_id] ??= []).includes(groupId)) groupsByPastor[r.pastor_id].push(groupId);
+    if (!(pastorsByGroup[groupId] ??= []).includes(r.pastor_id)) pastorsByGroup[groupId].push(r.pastor_id);
   }
 
   const groupNameById = Object.fromEntries(groupRows.map(g => [g.id, g.name]));
