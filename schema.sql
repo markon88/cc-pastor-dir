@@ -73,6 +73,14 @@ CREATE TABLE IF NOT EXISTS pastor_ama_groups (
   PRIMARY KEY (pastor_id, group_id)
 );
 
+-- Church-based AMA assignment (see migrations/016_church_ama_groups.sql) —
+-- survives a pastor moving, retiring, or being replaced, unlike
+-- pastor_ama_groups above which goes stale the moment that happens.
+CREATE TABLE IF NOT EXISTS church_ama_groups (
+  church_org_code TEXT PRIMARY KEY,
+  group_id        TEXT NOT NULL
+);
+
 -- Volunteer Lay Pastors (eAdventist office 84) and Volunteer Lay/Church Leaders
 -- (office 122) — unpaid volunteer roles, kept separate from the pastors table
 -- so they never appear in pastor search/listings, only on a dedicated Volunteers
