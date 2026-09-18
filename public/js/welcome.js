@@ -49,7 +49,7 @@ export function buildOnboardingSteps(user, opts) {
   steps.push({
     icon: '✅',
     title: "You're all set",
-    body: `That's the tour. Everything works offline once loaded, so it's there when you need it — even without signal. Connecting people to Jesus, one connection at a time.`,
+    body: `That's the tour — you're ready to go. Connecting people to Jesus, one connection at a time.`,
   });
 
   return steps;
