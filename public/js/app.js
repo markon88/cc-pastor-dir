@@ -140,14 +140,25 @@ function getMyPastorRecord() {
 }
 
 // ── Announcements ────────────────────────────────────────────────────────────
-// Shows every time the app is opened (login or a fresh/reloaded session) —
-// deliberately not dismissed-forever, since `init()` covers both cases.
+// Shown once per announcement, not on every login. ANNOUNCEMENT_ID identifies
+// *this* announcement's content — give it a new value (and update the
+// overlay's markup in index.html) whenever there's something new to tell
+// people, so it reappears once for the new message but stays dismissed for
+// anyone who already saw it.
+const ANNOUNCEMENT_ID = 'support-moved-2026-09';
+const ANNOUNCEMENT_DISMISSED_KEY = 'dismissedAnnouncement';
+
 function showProfileMenuAnnouncement() {
+  let dismissed = null;
+  try { dismissed = localStorage.getItem(ANNOUNCEMENT_DISMISSED_KEY); } catch {}
+  if (dismissed === ANNOUNCEMENT_ID) return;
+
   const overlay = document.getElementById('announcement-overlay');
   overlay.classList.remove('hidden');
 
   document.getElementById('announcement-dismiss').addEventListener('click', () => {
     overlay.classList.add('hidden');
+    try { localStorage.setItem(ANNOUNCEMENT_DISMISSED_KEY, ANNOUNCEMENT_ID); } catch {}
   }, { once: true });
 }
 
