@@ -23,11 +23,17 @@ export async function openDB() {
   });
 }
 
+// /api/data always returns the full current active roster, not a delta —
+// so the store is cleared before writing it back, or a pastor deactivated
+// server-side (e.g. dropped from eAdventist) would keep reappearing forever
+// from its stale cached row, even though every fresh server response
+// already omits them.
 export async function savePastors(pastors) {
   const d = await openDB();
   return new Promise((resolve, reject) => {
     const tx = d.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
+    store.clear();
     pastors.forEach(p => store.put(p));
     tx.oncomplete = resolve;
     tx.onerror = e => reject(e.target.error);
