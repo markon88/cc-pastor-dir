@@ -100,6 +100,7 @@ function renderAdminDetail(container, section) {
     });
     loadAllowedEmails();
   } else if (section === 'sync') {
+    document.getElementById('admin-sync-run-btn').addEventListener('click', () => runManualSync());
     loadSyncLog();
   } else if (section === 'disaster') {
     document.getElementById('admin-disaster-add-btn').addEventListener('click', () => addDisasterAdmin());
@@ -152,6 +153,16 @@ function adminDetailBody(section) {
   }
   if (section === 'sync') {
     return `
+      <div class="support-section">
+        <div class="admin-add-row" style="align-items:center;">
+          <div class="item-name" style="flex:1;">
+            Manual Sync
+            <div class="item-sub">Pull the latest churches & pastors from eAdventist right now.</div>
+          </div>
+          <button id="admin-sync-run-btn" class="support-btn">Run Now</button>
+        </div>
+      </div>
+
       <div class="support-section">
         <p class="support-section-desc">Items marked <strong>insert</strong> or <strong>unmatched</strong> need review.</p>
         <div id="admin-sync-log"><p class="support-section-desc">Loading…</p></div>
@@ -299,6 +310,26 @@ async function loadDisasterAdmins() {
       }
     });
   });
+}
+
+async function runManualSync() {
+  const btn = document.getElementById('admin-sync-run-btn');
+  if (!confirm('Run a manual eAdventist sync now?')) return;
+
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = 'Running…';
+
+  try {
+    const res = await fetch('/api/admin/sync-trigger', { method: 'POST' });
+    if (!res.ok) throw new Error();
+    await loadSyncLog();
+  } catch {
+    alert('Sync failed to run — please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
 }
 
 async function loadSyncLog() {
