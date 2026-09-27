@@ -154,6 +154,11 @@ function getMyPastorRecord() {
 function getAnnouncementQueue(user, opts) {
   return [
     { id: 'welcome-tour-2026-09', steps: buildOnboardingSteps(user, opts) },
+    { id: 'sundown-calendar-2026-09', steps: [{
+      icon: '🌅',
+      title: 'New: Sundown Calendars',
+      body: `Open any church or your own pastor page and scroll to <strong>Sundown Calendar</strong>. Pick a year to get a printable PDF showing when Sabbath begins and ends each week, with that Sabbath's offering. Times are calculated for each church's location. From your pastor page, you get one PDF with a page for each of your churches, ready to print or share.`,
+    }] },
   ];
 }
 
