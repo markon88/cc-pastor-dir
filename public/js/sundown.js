@@ -117,7 +117,10 @@ export function buildSundownPdf(JsPDF, { year, offerings, pages }) {
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text(`${year} SUNDOWN CALENDAR${hasOfferings ? ' & OFFERING SCHEDULE' : ''}`, W / 2, 30, { align: 'center', charSpace: 1 });
+    // jsPDF's align:'center' ignores charSpace, so center it by hand.
+    const kicker = `${year} SUNDOWN CALENDAR${hasOfferings ? ' & OFFERING SCHEDULE' : ''}`;
+    const kickerW = doc.getTextWidth(kicker) + (kicker.length - 1) * 1;
+    doc.text(kicker, (W - kickerW) / 2, 30, { charSpace: 1 });
     doc.setFontSize(fitFont(doc, church.name, W - 2 * M, 22, 14));
     doc.text(church.name, W / 2, 58, { align: 'center' });
     doc.setFont('helvetica', 'normal');
