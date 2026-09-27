@@ -32,6 +32,10 @@ const ADMIN_SECTIONS = {
     title: 'Disaster Tools',
     desc: 'Module on/off switch and standing disaster admins.',
   },
+  offerings: {
+    title: 'Offering Schedule',
+    desc: 'Conference offering for each Sabbath — printed on every Sundown Calendar.',
+  },
   'dark-counties': {
     title: 'Dark Counties',
     desc: 'NC/SC counties with no church on record.',
@@ -114,6 +118,12 @@ function renderAdminDetail(container, section) {
       title: 'Disaster Response',
       offDesc: 'Only admins and standing disaster admins can see the Disaster tab and church-level disaster sections. Turn on once fully deployed and ready.',
     });
+  } else if (section === 'offerings') {
+    const thisYear = new Date().getFullYear();
+    document.querySelectorAll('[data-offering-year]').forEach(btn => {
+      btn.addEventListener('click', () => loadOfferings(Number(btn.dataset.offeringYear)));
+    });
+    loadOfferings(thisYear + 1);
   } else if (section === 'dark-counties') {
     loadDarkCounties();
   } else if (section === 'feedback') {
@@ -185,6 +195,20 @@ function adminDetailBody(section) {
           <button id="admin-disaster-add-btn" class="support-btn">Grant</button>
         </div>
         <div id="admin-disaster-list"><p class="support-section-desc">Loading…</p></div>
+      </div>
+    `;
+  }
+  if (section === 'offerings') {
+    const thisYear = new Date().getFullYear();
+    return `
+      <div class="support-section">
+        <p class="support-section-desc">Enter the year's plan once the conference publishes it. Pastors generate Sundown Calendars from the church or pastor page; Sabbaths left blank print as "—".</p>
+        <div class="sundown-years">
+          ${[thisYear, thisYear + 1, thisYear + 2].map(y => `<button type="button" class="support-btn support-btn-alt" data-offering-year="${y}">${y}</button>`).join('')}
+        </div>
+      </div>
+      <div class="support-section">
+        <div id="admin-offerings"><p class="support-section-desc">Loading…</p></div>
       </div>
     `;
   }
@@ -378,6 +402,67 @@ async function loadSyncLog() {
         <span class="admin-version-badge ${actionClass(e.action)}">${esc(e.action)}</span>
       </div>`;
   }).join('');
+}
+
+async function loadOfferings(year) {
+  const el = document.getElementById('admin-offerings');
+  document.querySelectorAll('[data-offering-year]').forEach(btn => {
+    const active = Number(btn.dataset.offeringYear) === year;
+    btn.classList.toggle('support-btn-alt', !active);
+  });
+  el.innerHTML = '<p class="support-section-desc">Loading…</p>';
+
+  const res = await fetch(`/api/sundown/offerings?year=${year}`, { cache: 'no-store' });
+  if (!res.ok) { el.innerHTML = '<p class="support-section-desc">Failed to load.</p>'; return; }
+  const { offerings, knownOfferings } = await res.json();
+
+  const sabbaths = [];
+  const d = new Date(Date.UTC(year, 0, 1));
+  d.setUTCDate(1 + ((6 - d.getUTCDay() + 7) % 7));
+  for (; d.getUTCFullYear() === year; d.setUTCDate(d.getUTCDate() + 7)) sabbaths.push(d.toISOString().slice(0, 10));
+  const label = iso => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+
+  el.innerHTML = `
+    <div class="support-section-title">${year} — ${Object.keys(offerings).length} of ${sabbaths.length} Sabbaths entered</div>
+    <datalist id="admin-offering-names">${knownOfferings.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+    ${sabbaths.map(iso => `
+      <div class="admin-add-row" style="align-items:center;">
+        <div class="item-name" style="width:64px; flex-shrink:0;">${label(iso)}</div>
+        <input type="text" class="search-input" data-sabbath="${iso}" list="admin-offering-names" value="${esc(offerings[iso] ?? '')}" autocomplete="off">
+      </div>
+    `).join('')}
+    <div class="sundown-years" style="margin-top:12px;">
+      <button type="button" id="admin-offerings-fill" class="support-btn support-btn-alt">Fill blanks: Local Church Budget</button>
+      <button type="button" id="admin-offerings-save" class="support-btn">Save ${year}</button>
+    </div>
+    <p id="admin-offerings-status" class="support-section-desc"></p>
+  `;
+
+  document.getElementById('admin-offerings-fill').addEventListener('click', () => {
+    el.querySelectorAll('[data-sabbath]').forEach(input => {
+      if (!input.value.trim()) input.value = 'Local Church Budget';
+    });
+  });
+
+  document.getElementById('admin-offerings-save').addEventListener('click', async () => {
+    const btn = document.getElementById('admin-offerings-save');
+    const status = document.getElementById('admin-offerings-status');
+    const entries = Object.fromEntries([...el.querySelectorAll('[data-sabbath]')].map(i => [i.dataset.sabbath, i.value.trim()]));
+    btn.disabled = true;
+    status.textContent = 'Saving…';
+    const res = await fetch('/api/sundown/offerings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, offerings: entries }),
+    });
+    btn.disabled = false;
+    if (res.ok) {
+      const { saved } = await res.json();
+      status.textContent = `Saved ${saved} Sabbaths for ${year}.`;
+    } else {
+      status.textContent = 'Failed to save — please try again.';
+    }
+  });
 }
 
 async function loadDarkCounties() {

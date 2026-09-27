@@ -1,5 +1,6 @@
 import { generateVCard } from './contacts.js';
 import { renderPreparedness } from './disaster.js';
+import { renderSundownSection } from './sundown.js';
 
 function photoHtml(url, label) {
   return url
@@ -89,6 +90,15 @@ export function renderPastorDetail(container, pastor, onBack, onSelectChurch, on
       <button class="action-btn action-contact" id="add-contact-btn">+ Contact</button>
     </div>
   `;
+
+  const churchCount = pastor.churches?.length ?? 0;
+  renderSundownSection(container.querySelector('.detail-body'), {
+    churchNames: pastor.churches,
+    fileLabel: churchCount === 1 ? pastor.churches[0] : pastor.displayName,
+    description: churchCount > 1
+      ? `Friday & Sabbath sundown times with the weekly offering — one page for each of ${churchCount} churches, ready to print or share.`
+      : 'Friday & Sabbath sundown times with the weekly offering, ready to print or share.',
+  });
 
   container.querySelector('#detail-back').addEventListener('click', onBack);
   container.querySelector('#add-contact-btn').addEventListener('click', () => generateVCard(pastor));
@@ -205,6 +215,11 @@ export function renderChurchDetail(container, church, onSelectPastor, onBack, on
     </div>
   `;
 
+  renderSundownSection(container.querySelector('.detail-body'), {
+    churchNames: [church.name],
+    fileLabel: church.name,
+    description: 'Friday & Sabbath sundown times with the weekly offering, ready to print or share.',
+  });
   renderPreparedness(container.querySelector('.detail-body'), church.name);
 
   container.querySelector('#church-detail-back').addEventListener('click', onBack);

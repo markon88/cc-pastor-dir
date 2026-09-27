@@ -127,3 +127,12 @@ CREATE TABLE IF NOT EXISTS ama_meetings (
   date       TEXT NOT NULL,
   type       TEXT NOT NULL
 );
+
+-- Conference offering plan, one row per Sabbath — printed on the per-church
+-- Sundown Calendar PDF (see migrations/019_offering_schedule.sql).
+CREATE TABLE IF NOT EXISTS offering_schedule (
+  sabbath_date TEXT PRIMARY KEY,  -- YYYY-MM-DD, always a Saturday
+  offering     TEXT NOT NULL,
+  updated_by   TEXT,
+  updated_at   TEXT DEFAULT (datetime('now'))
+);

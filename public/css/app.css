@@ -1175,3 +1175,12 @@ html, body {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
+
+/* ── Sundown Calendar ───────────────────────────────────────────────────── */
+.sundown-desc { margin-bottom: 10px; }
+.sundown-years { display: flex; gap: 10px; }
+.sundown-years .support-btn { flex: 1; }
+.sundown-years .support-btn:disabled { opacity: 0.5; }
+.sundown-result { margin-top: 10px; }
+.sundown-status { margin-bottom: 10px; }
+.sundown-section .hidden { display: none; }
