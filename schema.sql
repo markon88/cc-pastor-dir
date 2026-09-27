@@ -74,15 +74,9 @@ CREATE TABLE IF NOT EXISTS pastor_churches (
   PRIMARY KEY (pastor_id, church_org_code)
 );
 
-CREATE TABLE IF NOT EXISTS pastor_ama_groups (
-  pastor_id TEXT NOT NULL,
-  group_id  TEXT NOT NULL,
-  PRIMARY KEY (pastor_id, group_id)
-);
-
 -- Church-based AMA assignment (see migrations/016_church_ama_groups.sql) —
--- survives a pastor moving, retiring, or being replaced, unlike
--- pastor_ama_groups above which goes stale the moment that happens.
+-- survives a pastor moving, retiring, or being replaced. Replaced the old
+-- pastor-based pastor_ama_groups table (dropped in 018).
 CREATE TABLE IF NOT EXISTS church_ama_groups (
   church_org_code TEXT PRIMARY KEY,
   group_id        TEXT NOT NULL
