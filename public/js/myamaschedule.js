@@ -48,18 +48,69 @@ function renderGroupSection(groupName) {
   `;
 }
 
-export function renderMyAmaScheduleView(container, myPastor) {
+// Lets a pastor pick which AMA they participate in (near a boundary, living
+// closer to another AMA, or serving churches in more than one). Saved as a
+// personal preference on the server — never passed on to their successor.
+function renderPreferenceCard(myPastor, amaGroups) {
+  const fromChurches = myPastor.amaGroupFromChurches ?? [];
+  const isPref = !!myPastor.amaGroupIsPreference;
+  const current = isPref ? myPastor.amaGroup?.[0] : null;
+  const churchLabel = fromChurches.length ? fromChurches.join(' & ') : 'none assigned';
+
+  return `
+    <div class="meetings-section ama-pref-card">
+      <div class="meetings-header">AMA I Participate In</div>
+      <div style="padding:8px 16px 14px;">
+        <select id="ama-pref-select" class="search-input" style="width:100%;font-size:16px;">
+          <option value="" ${!isPref ? 'selected' : ''}>My churches' AMA (${esc(churchLabel)})</option>
+          ${amaGroups.map(g => `<option value="${esc(g.id)}" ${current === g.name ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}
+        </select>
+        <div style="font-size:13px;color:var(--text-sub);margin-top:8px;">
+          Your churches are assigned to ${esc(churchLabel)}. If you take part in a different AMA, choose it here — this is just for you and won't carry over to the next pastor at your churches. Choosing is optional. When you choose, the conference office is notified so they can keep you updated on any schedule changes affecting the AMA you choose.
+        </div>
+        <div id="ama-pref-status" style="font-size:13px;margin-top:6px;"></div>
+      </div>
+    </div>
+  `;
+}
+
+export function renderMyAmaScheduleView(container, myPastor, amaGroups = [], onPreferenceSaved) {
   const groups = myPastor?.amaGroup?.length ? myPastor.amaGroup : [];
 
   container.innerHTML = `
     <div class="list-header">
       <div class="view-title">My AMA Schedule</div>
     </div>
+    ${myPastor && amaGroups.length ? renderPreferenceCard(myPastor, amaGroups) : ''}
     ${groups.length
       ? groups.map(renderGroupSection).join('')
       : '<div class="empty-state">You\'re not currently assigned to an AMA group. Contact the conference office if this looks wrong.</div>'
     }
   `;
+
+  const select = container.querySelector('#ama-pref-select');
+  if (select) {
+    select.addEventListener('change', async () => {
+      const status = container.querySelector('#ama-pref-status');
+      select.disabled = true;
+      status.style.color = 'var(--text-sub)';
+      status.textContent = 'Saving…';
+      try {
+        const res = await fetch('/api/ama-preference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ groupId: select.value || null }),
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Save failed');
+        status.textContent = 'Saved';
+        await onPreferenceSaved?.();
+      } catch (err) {
+        select.disabled = false;
+        status.style.color = 'var(--red)';
+        status.textContent = navigator.onLine ? `Couldn't save: ${err.message}` : "You're offline — try again when connected.";
+      }
+    });
+  }
 
   container.querySelectorAll('.meetings-section').forEach(section => {
     const groupName = section.dataset.group;

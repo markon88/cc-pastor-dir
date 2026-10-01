@@ -251,6 +251,7 @@ export async function checkForUpdates() {
     pastors   = data.pastors;
     amaGroups = data.amaGroups;
     initSchedule(data.amaSchedule);
+    checkAmaBanner(document.getElementById('banners'), currentUser, pastors);
     initPastorsView(pastors);
     buildChurchList(pastors, data.churchAddresses, volunteersEnabled ? (data.volunteers ?? []) : []);
     initAmaView(amaGroups, pastors);
@@ -342,7 +343,7 @@ function renderTab(tab) {
   } else if (tab === 'officedirectory') {
     renderOfficeDirectoryView(mainContent);
   } else if (tab === 'myama') {
-    renderMyAmaScheduleView(mainContent, getMyPastorRecord());
+    renderMyAmaScheduleView(mainContent, getMyPastorRecord(), amaGroups, checkForUpdates);
   } else if (tab === 'admin') {
     renderAdminView(mainContent);
   } else if (tab === 'disaster') {

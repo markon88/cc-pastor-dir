@@ -14,6 +14,7 @@ export async function onRequestGet({ env }) {
     { results: versionRows },
     { results: meetingRows },
     { results: volunteerRows },
+    { results: prefRows },
   ] = await env.DB.batch([
     env.DB.prepare('SELECT id, last_name, first_name, display_name, email, birthday, street, city, state, zip, primary_phone, photo_url FROM pastors WHERE active = 1 ORDER BY last_name, first_name'),
     env.DB.prepare('SELECT pastor_id, number, mobile, confidential FROM pastor_phones'),
@@ -24,6 +25,7 @@ export async function onRequestGet({ env }) {
     env.DB.prepare("SELECT value FROM meta WHERE key = 'version'"),
     env.DB.prepare('SELECT id, group_name, date, type FROM ama_meetings ORDER BY date'),
     env.DB.prepare('SELECT eadventist_id, office_id, office_name, display_name, email, phone, church_org_code FROM volunteers ORDER BY office_name, display_name'),
+    env.DB.prepare('SELECT pastor_id, group_id FROM pastor_ama_preferences'),
   ]);
 
   // Build lookup maps from junction/detail tables
@@ -50,16 +52,30 @@ export async function onRequestGet({ env }) {
   // migrations/016_church_ama_groups.sql).
   const groupByChurchOrgCode = Object.fromEntries(cagRows.map(r => [r.church_org_code, r.group_id]));
 
-  const groupsByPastor = {};
-  const pastorsByGroup = {};
+  const churchGroupsByPastor = {};
   for (const r of pcRows) {
     const groupId = groupByChurchOrgCode[r.church_org_code];
     if (!groupId) continue;
-    if (!(groupsByPastor[r.pastor_id] ??= []).includes(groupId)) groupsByPastor[r.pastor_id].push(groupId);
-    if (!(pastorsByGroup[groupId] ??= []).includes(r.pastor_id)) pastorsByGroup[groupId].push(r.pastor_id);
+    if (!(churchGroupsByPastor[r.pastor_id] ??= []).includes(groupId)) churchGroupsByPastor[r.pastor_id].push(groupId);
   }
 
   const groupNameById = Object.fromEntries(groupRows.map(g => [g.id, g.name]));
+
+  // A pastor's personal AMA preference (migrations/021) replaces the
+  // church-derived group(s) for that pastor only — it's keyed on the pastor,
+  // so their successor at the same churches still gets the church's AMA.
+  const prefByPastor = Object.fromEntries(
+    prefRows.filter(r => groupNameById[r.group_id]).map(r => [r.pastor_id, r.group_id])
+  );
+
+  const groupsByPastor = {};
+  const pastorsByGroup = {};
+  for (const p of pastorRows) {
+    const groupIds = prefByPastor[p.id] ? [prefByPastor[p.id]] : (churchGroupsByPastor[p.id] ?? []);
+    if (!groupIds.length) continue;
+    groupsByPastor[p.id] = groupIds;
+    for (const gid of groupIds) (pastorsByGroup[gid] ??= []).push(p.id);
+  }
 
   const pastors = pastorRows.map(p => ({
     id:           p.id,
@@ -74,6 +90,8 @@ export async function onRequestGet({ env }) {
     primaryPhone: p.primary_phone ?? null,
     churches:     churchesByPastor[p.id] ?? [],
     amaGroup:     (groupsByPastor[p.id] ?? []).map(gid => groupNameById[gid]).filter(Boolean),
+    amaGroupFromChurches: (churchGroupsByPastor[p.id] ?? []).map(gid => groupNameById[gid]).filter(Boolean),
+    amaGroupIsPreference: !!prefByPastor[p.id],
   }));
 
   const amaGroups = groupRows.map(g => ({

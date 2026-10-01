@@ -145,6 +145,10 @@ export function downloadGroupIcs(groupName, meetings) {
 export function checkAmaBanner(bannersEl, currentUser, pastors) {
   if (!AMA_MEETINGS_ENABLED || !bannersEl || !currentUser?.email) return;
 
+  // Safe to re-run after a data refresh (e.g. the pastor changed their AMA
+  // preference) — replaces rather than stacks the banner.
+  bannersEl.querySelector('.banner-ama')?.remove();
+
   const lookupEmail = (currentUser.directoryEmail ?? currentUser.email).toLowerCase();
   const pastor = pastors.find(p => p.email?.toLowerCase() === lookupEmail);
   if (!pastor?.amaGroup?.length) return;

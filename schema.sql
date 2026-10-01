@@ -82,6 +82,14 @@ CREATE TABLE IF NOT EXISTS church_ama_groups (
   group_id        TEXT NOT NULL
 );
 
+-- A pastor's personal AMA choice (see migrations/021_pastor_ama_preferences.sql)
+-- — overrides the church-derived AMA for that pastor only, never their successor.
+CREATE TABLE IF NOT EXISTS pastor_ama_preferences (
+  pastor_id  TEXT PRIMARY KEY,
+  group_id   TEXT NOT NULL,
+  updated_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Volunteer Lay Pastors (eAdventist office 84) and Volunteer Lay/Church Leaders
 -- (office 122) — unpaid volunteer roles, kept separate from the pastors table
 -- so they never appear in pastor search/listings, only on a dedicated Volunteers
