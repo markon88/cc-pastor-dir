@@ -68,6 +68,10 @@ function renderPreferenceCard(myPastor, amaGroups) {
         <div style="font-size:13px;color:var(--text-sub);margin-top:8px;">
           Your churches are assigned to ${esc(churchLabel)}. If you take part in a different AMA, choose it here — this is just for you and won't carry over to the next pastor at your churches. Choosing is optional. When you choose, the conference office is notified so they can keep you updated on any schedule changes affecting the AMA you choose.
         </div>
+        <div id="ama-pref-save-wrap" class="hidden" style="margin-top:10px;">
+          <textarea id="ama-pref-note" class="search-input" rows="2" maxlength="1000" placeholder="Reason (optional) — e.g. I live closer to this AMA" style="width:100%;font-size:16px;resize:vertical;"></textarea>
+          <button id="ama-pref-save" class="action-btn action-email" style="width:100%;margin-top:8px;">Save</button>
+        </div>
         <div id="ama-pref-status" style="font-size:13px;margin-top:6px;"></div>
       </div>
     </div>
@@ -90,22 +94,34 @@ export function renderMyAmaScheduleView(container, myPastor, amaGroups = [], onP
 
   const select = container.querySelector('#ama-pref-select');
   if (select) {
-    select.addEventListener('change', async () => {
-      const status = container.querySelector('#ama-pref-status');
-      select.disabled = true;
+    const saveWrap = container.querySelector('#ama-pref-save-wrap');
+    const noteEl   = container.querySelector('#ama-pref-note');
+    const saveBtn  = container.querySelector('#ama-pref-save');
+    const status   = container.querySelector('#ama-pref-status');
+    const initial  = select.value;
+
+    // Changing the dropdown only reveals the optional note + Save — nothing is
+    // saved (or emailed) until the pastor confirms.
+    select.addEventListener('change', () => {
+      saveWrap.classList.toggle('hidden', select.value === initial);
+      status.textContent = '';
+    });
+
+    saveBtn.addEventListener('click', async () => {
+      select.disabled = saveBtn.disabled = noteEl.disabled = true;
       status.style.color = 'var(--text-sub)';
       status.textContent = 'Saving…';
       try {
         const res = await fetch('/api/ama-preference', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ groupId: select.value || null }),
+          body: JSON.stringify({ groupId: select.value || null, note: noteEl.value }),
         });
         if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Save failed');
         status.textContent = 'Saved';
         await onPreferenceSaved?.();
       } catch (err) {
-        select.disabled = false;
+        select.disabled = saveBtn.disabled = noteEl.disabled = false;
         status.style.color = 'var(--red)';
         status.textContent = navigator.onLine ? `Couldn't save: ${err.message}` : "You're offline — try again when connected.";
       }

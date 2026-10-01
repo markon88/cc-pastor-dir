@@ -1,7 +1,8 @@
 // Saves (or clears) the signed-in pastor's personal AMA preference — which
 // AMA they participate in, overriding the one derived from their churches.
 // See migrations/021_pastor_ama_preferences.sql. Body: { groupId } to set,
-// { groupId: null } to go back to their churches' AMA. Choosing is always
+// { groupId: null } to go back to their churches' AMA, plus an optional
+// { note } explaining why (emailed to the coordinator, never served in /api/data). Choosing is always
 // optional — with no saved preference a pastor stays on their churches' AMA.
 //
 // Whenever a pastor's chosen AMA changes — a different AMA than their
@@ -24,6 +25,7 @@ export async function onRequestPost({ request, env, data }) {
   const body = await request.json().catch(() => null);
   if (!body || !('groupId' in body)) return json({ error: 'Missing groupId' }, 400);
   const groupId = body.groupId;
+  const note = typeof body.note === 'string' ? body.note.trim().slice(0, 1000) || null : null;
 
   // Same lookup the client uses for "my pastor record": the directory email
   // an admin mapped this login to, else the login email itself.
@@ -60,10 +62,10 @@ export async function onRequestPost({ request, env, data }) {
     await env.DB.prepare('DELETE FROM pastor_ama_preferences WHERE pastor_id = ?').bind(pastor.id).run();
   } else {
     await env.DB.prepare(`
-      INSERT INTO pastor_ama_preferences (pastor_id, group_id, updated_at)
-      VALUES (?, ?, datetime('now'))
-      ON CONFLICT(pastor_id) DO UPDATE SET group_id = excluded.group_id, updated_at = excluded.updated_at
-    `).bind(pastor.id, effectiveGroupId).run();
+      INSERT INTO pastor_ama_preferences (pastor_id, group_id, note, updated_at)
+      VALUES (?, ?, ?, datetime('now'))
+      ON CONFLICT(pastor_id) DO UPDATE SET group_id = excluded.group_id, note = excluded.note, updated_at = excluded.updated_at
+    `).bind(pastor.id, effectiveGroupId, note).run();
   }
 
   const prevId = previous?.group_id ?? null;
@@ -73,6 +75,7 @@ export async function onRequestPost({ request, env, data }) {
       assigned:   assignedIds.map(id => groupName[id]).filter(Boolean).join(' & ') || 'None',
       previous:   prevId ? groupName[prevId] ?? prevId : null,
       chosen:     effectiveGroupId ? groupName[effectiveGroupId] : null,
+      note,
     });
   }
 
@@ -86,7 +89,7 @@ export async function onRequestPost({ request, env, data }) {
 
 // Best-effort — the preference is already saved, so a mail hiccup never
 // blocks the pastor's change.
-async function notifyCoordinator(env, { pastorName, assigned, previous, chosen }) {
+async function notifyCoordinator(env, { pastorName, assigned, previous, chosen, note }) {
   const to = env.AMA_PREF_NOTIFY_EMAIL || 'acase@carolinasda.org';
   const subject = chosen
     ? `[CC Pastors] ${pastorName} chose the ${chosen} AMA`
@@ -100,7 +103,10 @@ async function notifyCoordinator(env, { pastorName, assigned, previous, chosen }
       ...(previous ? [{ label: 'Previously chose', value: previous }] : []),
       { label: 'Now participating in', value: chosen ?? `${assigned} (assigned)` },
     ],
-    paragraphs: ['Please keep this pastor updated on any schedule changes affecting the AMA they participate in.'],
+    paragraphs: [
+      ...(note ? [`Pastor's note: ${note}`] : []),
+      'Please keep this pastor updated on any schedule changes affecting the AMA they participate in.',
+    ],
     footer: 'Sent because a pastor changed their AMA on My AMA Schedule in CC Pastors.',
   });
   try {

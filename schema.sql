@@ -87,7 +87,8 @@ CREATE TABLE IF NOT EXISTS church_ama_groups (
 CREATE TABLE IF NOT EXISTS pastor_ama_preferences (
   pastor_id  TEXT PRIMARY KEY,
   group_id   TEXT NOT NULL,
-  updated_at TEXT DEFAULT (datetime('now'))
+  updated_at TEXT DEFAULT (datetime('now')),
+  note       TEXT
 );
 
 -- Volunteer Lay Pastors (eAdventist office 84) and Volunteer Lay/Church Leaders
