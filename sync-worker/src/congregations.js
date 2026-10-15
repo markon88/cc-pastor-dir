@@ -25,32 +25,36 @@ export async function syncCongregations(env, lastSync) {
 
   const newChurches = [];
   let updated = 0;
+  let regionSample;
 
   for (const c of congregations) {
     const orgId   = String(c.id);
     const orgCode = c.org_code;
     const name    = c.name.replace(/\s+/g, ' ').trim();
-    const region  = c.region ?? null;
+    // eAdventist began sending region as an object (Oct 2026), which D1 can't
+    // bind — take its name/code, keeping the raw shape in the sync log.
+    const region  = scalar(c.region, ['name', 'code']);
+    if (regionSample === undefined && c.region != null) regionSample = c.region;
     const addr    = c.street_address ?? {};
-    const street     = addr.address   ?? null;
-    const city       = addr.city      ?? null;
-    const state      = addr.state     ?? null;
-    const zip        = addr.postal_code ?? null;
-    const membership = c.member_count ?? null;
+    const street     = scalar(addr.address);
+    const city       = scalar(addr.city);
+    const state      = scalar(addr.state);
+    const zip        = scalar(addr.postal_code);
+    const membership = scalar(c.member_count);
     const mail       = c.mail_address ?? {};
-    const mailStreet = mail.address     ?? null;
-    const mailCity   = mail.city        ?? null;
-    const mailState  = mail.state       ?? null;
-    const mailZip    = mail.postal_code ?? null;
-    const website    = c.web_site ?? null;
-    const phone      = c.phone ?? null;
-    const email      = c.email ?? null;
-    const language   = c.language ?? null;
+    const mailStreet = scalar(mail.address);
+    const mailCity   = scalar(mail.city);
+    const mailState  = scalar(mail.state);
+    const mailZip    = scalar(mail.postal_code);
+    const website    = scalar(c.web_site);
+    const phone      = scalar(c.phone);
+    const email      = scalar(c.email);
+    const language   = scalar(c.language);
     const latitude   = c.latitude  != null ? Number(c.latitude)  : null;
     const longitude  = c.longitude != null ? Number(c.longitude) : null;
-    const isActive   = c.is_active ?? null;
-    const isPublic   = c.is_public ?? null;
-    const drivingDirections = c.driving_directions ?? null;
+    const isActive   = scalar(c.is_active);
+    const isPublic   = scalar(c.is_public);
+    const drivingDirections = scalar(c.driving_directions);
     const serviceTimes = c.service_times ? JSON.stringify(c.service_times) : null;
     const photoUrl   = c.photo_file_name
       ? `https://www.eadventist.net/organizations/${c.id}/photo?style=thumb`
@@ -117,7 +121,16 @@ export async function syncCongregations(env, lastSync) {
     updated,
     inserted: newChurches.length,
     incremental: !!lastSync,
+    regionSample: regionSample ?? null,
   });
 
   return { updated, newChurches };
+}
+
+// D1 only binds scalars. If eAdventist turns a field into an object, use the
+// first of `keys` it has, else its JSON, rather than failing the whole sync.
+function scalar(value, keys = []) {
+  if (value == null || typeof value !== 'object') return value ?? null;
+  for (const k of keys) if (value[k] != null && typeof value[k] !== 'object') return value[k];
+  return JSON.stringify(value);
 }
