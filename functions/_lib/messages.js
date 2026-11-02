@@ -184,11 +184,14 @@ Sent by ${escHtml(sender)} through the Carolina Conference Pastor Directory. Rep
 }
 
 // ── Resend API ───────────────────────────────────────────────────────────────
+// Broadcasts create contacts, segments, and topics, so RESEND_API_KEY must
+// have Full access in Resend — a sending-only key fails with a 401.
 async function resend(env, path, { method = 'GET', body, form } = {}) {
-  if (!env.RESEND_API_KEY) throw new Error('RESEND_API_KEY not configured');
+  const key = env.RESEND_API_KEY;
+  if (!key) throw new Error('RESEND_API_KEY not configured');
   const init = {
     method,
-    headers: { 'Authorization': `Bearer ${env.RESEND_API_KEY}` },
+    headers: { 'Authorization': `Bearer ${key}` },
   };
   if (form) {
     init.body = form;
@@ -204,6 +207,9 @@ async function resend(env, path, { method = 'GET', body, form } = {}) {
       continue;
     }
     const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && /restricted/i.test(data.message ?? '')) {
+      throw new Error('The Resend API key is sending-only. Messages need it set to Full access in Resend.');
+    }
     if (!res.ok) throw new Error(`Resend ${method} ${path} failed (${res.status}): ${data.message ?? JSON.stringify(data)}`);
     return data;
   }
