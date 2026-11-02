@@ -1,4 +1,5 @@
 import { getSessionFromRequest, signJWT, isAdmin, isStandingDisasterAdmin, sessionCookieHeader } from '../../_lib/auth.js';
+import { getMessagesRole } from '../../_lib/messages.js';
 
 function detectPlatform(ua) {
   if (!ua) return null;
@@ -62,6 +63,7 @@ export async function onRequestGet({ request, env }) {
     picture:        user.picture,
     isAdmin:        isAdmin(user.email, env),
     isDisasterAdmin: env.DB ? await isStandingDisasterAdmin(user.email, env.DB) : false,
+    messagesRole:   await getMessagesRole(user.email, env).catch(() => null),
     directoryEmail: mapping?.directory_email ?? null,
     seenAnnouncements: (seenRows?.results ?? []).map(r => r.announcement_id),
   }), { headers });

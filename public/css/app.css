@@ -1184,3 +1184,53 @@ html, body {
 .sundown-result { margin-top: 10px; }
 .sundown-status { margin-bottom: 10px; }
 .sundown-section .hidden { display: none; }
+
+/* ── Messages tab ────────────────────────────────────────────────────────── */
+.msg-audience { display: flex; flex-direction: column; gap: 8px; }
+.msg-check { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; color: var(--text); cursor: pointer; }
+.msg-check input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--primary); }
+.msg-merge-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.msg-chip {
+  padding: 6px 12px;
+  border: 1.5px solid var(--primary);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.msg-chip:active { background: var(--primary-light); }
+.msg-textarea { font-size: 15px; line-height: 1.5; min-height: 240px; }
+.msg-actions { display: flex; gap: 8px; }
+.msg-actions .support-btn { flex: 1; }
+.msg-status {
+  display: inline-block;
+  padding: 1px 8px;
+  margin-right: 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--border);
+  color: var(--text-sub);
+}
+.msg-status-sent { background: #eafaf1; color: #1e8449; }
+.msg-status-failed { background: #fdecea; color: var(--red); }
+.msg-status-importing, .msg-status-sending { background: #fef9e7; color: #9a6b00; }
+.msg-error-box {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fdecea;
+  color: var(--red);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.msg-preview-frame {
+  width: 100%;
+  height: 560px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f4f5f7;
+}

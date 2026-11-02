@@ -1,0 +1,37 @@
+import { json, parseAudience } from '../../../_lib/messages.js';
+
+const EDITABLE = ['draft', 'failed'];
+
+export async function onRequestGet({ env, params }) {
+  const c = await env.DB.prepare('SELECT * FROM message_campaigns WHERE id = ?').bind(Number(params.id)).first();
+  if (!c) return json({ error: 'Not found' }, 404);
+  return json({ ...c, audience: parseAudience(c.audience) });
+}
+
+// PUT → save a draft (only while it's still a draft or a failed send)
+export async function onRequestPut({ request, env, params, data }) {
+  const b = await request.json().catch(() => ({}));
+  const res = await env.DB.prepare(`
+    UPDATE message_campaigns
+       SET subject = ?, body = ?, from_name = ?, reply_to = ?, audience = ?,
+           updated_by = ?, updated_at = datetime('now')
+     WHERE id = ? AND status IN (${EDITABLE.map(() => '?').join(',')})
+  `).bind(
+    String(b.subject ?? '').slice(0, 200),
+    String(b.body ?? '').slice(0, 50000),
+    String(b.from_name ?? '').slice(0, 80),
+    String(b.reply_to ?? '').trim().slice(0, 200),
+    JSON.stringify(parseAudience(JSON.stringify(b.audience ?? []))),
+    data.user.email, Number(params.id), ...EDITABLE,
+  ).run();
+  if (!res.meta.changes) return json({ error: 'This message has already been sent and can no longer be edited.' }, 409);
+  return json({ ok: true });
+}
+
+export async function onRequestDelete({ env, params }) {
+  const res = await env.DB.prepare(
+    `DELETE FROM message_campaigns WHERE id = ? AND status IN (${EDITABLE.map(() => '?').join(',')})`
+  ).bind(Number(params.id), ...EDITABLE).run();
+  if (!res.meta.changes) return json({ error: 'Sent messages can’t be deleted.' }, 409);
+  return json({ ok: true });
+}

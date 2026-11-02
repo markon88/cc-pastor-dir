@@ -10,6 +10,7 @@ import { renderOfficeDirectoryView } from './officedirectory.js';
 import { renderMyAmaScheduleView } from './myamaschedule.js';
 import { setupFeedbackModal } from './feedback.js';
 import { renderAdminView } from './admin.js';
+import { renderMessagesView } from './messages.js';
 import { checkAmaBanner, initSchedule } from './ama-meetings.js';
 import { initDisaster, checkDisasterActive, renderDisasterView, maybeShowSelfReportPrompt } from './disaster.js';
 import { showTour, buildOnboardingSteps } from './welcome.js';
@@ -49,6 +50,9 @@ async function init() {
 
   if (currentUser.isAdmin) {
     document.querySelector('[data-tab="admin"]').style.display = 'flex';
+  }
+  if (currentUser.messagesRole) {
+    document.querySelector('[data-tab="messages"]').style.display = 'flex';
   }
   await refreshVolunteersTab();
 
@@ -348,6 +352,8 @@ function renderTab(tab) {
     renderAdminView(mainContent);
   } else if (tab === 'disaster') {
     renderDisasterView(mainContent);
+  } else if (tab === 'messages') {
+    renderMessagesView(mainContent, currentUser.messagesRole);
   }
 }
 

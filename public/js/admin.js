@@ -32,6 +32,10 @@ const ADMIN_SECTIONS = {
     title: 'Disaster Tools',
     desc: 'Module on/off switch and standing disaster admins.',
   },
+  messages: {
+    title: 'Messages Access',
+    desc: 'Who can use the Messages tab to email pastors and contact lists.',
+  },
   offerings: {
     title: 'Offering Schedule',
     desc: 'Conference offering for each Sabbath — printed on every Sundown Calendar.',
@@ -118,6 +122,12 @@ function renderAdminDetail(container, section) {
       title: 'Disaster Response',
       offDesc: 'Only admins and standing disaster admins can see the Disaster tab and church-level disaster sections. Turn on once fully deployed and ready.',
     });
+  } else if (section === 'messages') {
+    document.getElementById('admin-msg-add-btn').addEventListener('click', () => addMessagesUser());
+    document.getElementById('admin-msg-email-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addMessagesUser();
+    });
+    loadMessagesUsers();
   } else if (section === 'offerings') {
     const thisYear = new Date().getFullYear();
     document.querySelectorAll('[data-offering-year]').forEach(btn => {
@@ -195,6 +205,22 @@ function adminDetailBody(section) {
           <button id="admin-disaster-add-btn" class="support-btn">Grant</button>
         </div>
         <div id="admin-disaster-list"><p class="support-section-desc">Loading…</p></div>
+      </div>
+    `;
+  }
+  if (section === 'messages') {
+    return `
+      <div class="support-section">
+        <p class="support-section-desc">Admins always have full access. Anyone granted here sees a Messages tab where they can manage contact lists and write messages. Turn on <strong>Can send</strong> for people who may actually send. Someone without a @carolinasda.org address also needs an Email Access entry to sign in.</p>
+        <div class="admin-add-row">
+          <input type="email" id="admin-msg-email-input" class="search-input" placeholder="name@carolinasda.org" autocomplete="off">
+          <button id="admin-msg-add-btn" class="support-btn">Grant</button>
+        </div>
+        <label class="msg-check"><input type="checkbox" id="admin-msg-can-send"> <span>Can send</span></label>
+      </div>
+      <div class="support-section">
+        <div class="support-section-title">People with access</div>
+        <div id="admin-msg-list"><p class="support-section-desc">Loading…</p></div>
       </div>
     `;
   }
@@ -334,6 +360,61 @@ async function loadDisasterAdmins() {
       }
     });
   });
+}
+
+async function addMessagesUser(email, canSend) {
+  const input = document.getElementById('admin-msg-email-input');
+  const target = (email ?? input.value).trim();
+  if (!target || !target.includes('@')) return;
+  const res = await fetch('/api/admin/messages/role-users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: target, can_send: canSend ?? document.getElementById('admin-msg-can-send').checked }),
+  });
+  if (res.ok) {
+    if (email === undefined) input.value = '';
+    loadMessagesUsers();
+  } else {
+    alert('Failed to update access — please try again.');
+  }
+}
+
+async function loadMessagesUsers() {
+  const list = document.getElementById('admin-msg-list');
+  if (!list) return;
+  const res = await fetch('/api/admin/messages/role-users', { cache: 'no-store' });
+  if (!res.ok) {
+    list.innerHTML = '<p class="support-section-desc" style="color:var(--red)">Failed to load list.</p>';
+    return;
+  }
+  const rows = await res.json();
+  if (!rows.length) {
+    list.innerHTML = '<p class="support-section-desc">No one yet.</p>';
+    return;
+  }
+  list.innerHTML = rows.map(r => `
+    <div class="admin-email-row">
+      <div class="admin-email-info">
+        <div class="item-name">${esc(r.email)}</div>
+        <div class="item-sub">${r.can_send ? 'Can send' : 'Lists & drafts only'} · granted by ${esc(r.granted_by ?? '')}</div>
+      </div>
+      <div class="admin-email-actions">
+        <button class="support-btn support-btn-alt admin-msg-toggle" style="width:auto;padding:6px 12px;font-size:13px;" data-email="${esc(r.email)}" data-can-send="${r.can_send ? 0 : 1}">${r.can_send ? 'Remove send' : 'Allow send'}</button>
+        <button class="admin-delete-btn admin-msg-revoke" data-email="${esc(r.email)}">Revoke</button>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.admin-msg-toggle').forEach(btn => btn.addEventListener('click', () => {
+    btn.disabled = true;
+    addMessagesUser(btn.dataset.email, btn.dataset.canSend === '1');
+  }));
+  list.querySelectorAll('.admin-msg-revoke').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm(`Remove Messages access for ${btn.dataset.email}?`)) return;
+    btn.disabled = true;
+    const res = await fetch(`/api/admin/messages/role-users?email=${encodeURIComponent(btn.dataset.email)}`, { method: 'DELETE' });
+    if (res.ok) loadMessagesUsers();
+    else { btn.disabled = false; alert('Failed to revoke — please try again.'); }
+  }));
 }
 
 async function runManualSync() {
