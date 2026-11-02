@@ -473,7 +473,10 @@ async function openList(id) {
               <div class="item-name">${esc(`${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || c.email)}</div>
               <div class="item-sub">${esc(c.email)}${c.organization ? ` · ${esc(c.organization)}` : ''}</div>
             </div>
-            <div class="admin-email-actions"><button type="button" class="admin-delete-btn" data-remove="${c.id}">Remove</button></div>
+            <div class="admin-email-actions">
+              <button type="button" class="support-btn support-btn-alt msg-row-btn" data-edit="${c.id}">Edit</button>
+              <button type="button" class="admin-delete-btn" data-remove="${c.id}">Remove</button>
+            </div>
           </div>`).join('')}
       </div>
     </div>
@@ -533,6 +536,43 @@ async function openList(id) {
     const q = e.target.value.trim().toLowerCase();
     wrap.querySelectorAll('[data-row]').forEach(r => { r.style.display = !q || r.dataset.row.includes(q) ? '' : 'none'; });
   });
+
+  wrap.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => {
+    const c = list.contacts.find(x => x.id === Number(b.dataset.edit));
+    const row = b.closest('.admin-email-row');
+    row.classList.add('msg-edit-row');
+    row.innerHTML = `
+      <div class="msg-edit-form">
+        <div class="admin-add-row">
+          <input type="text" class="search-input" data-f="first_name" placeholder="First name" value="${esc(c.first_name)}">
+          <input type="text" class="search-input" data-f="last_name" placeholder="Last name" value="${esc(c.last_name)}">
+        </div>
+        <input type="email" class="search-input" data-f="email" placeholder="Email" value="${esc(c.email)}">
+        <input type="text" class="search-input" data-f="organization" placeholder="Church or school (optional)" value="${esc(c.organization)}">
+        <div class="msg-actions">
+          <button type="button" class="support-btn support-btn-alt" data-cancel>Cancel</button>
+          <button type="button" class="support-btn" data-save>Save</button>
+        </div>
+      </div>
+    `;
+    row.querySelector('[data-f="first_name"]').focus();
+    row.querySelector('[data-cancel]').addEventListener('click', () => openList(id));
+    const save = async () => {
+      const body = {};
+      row.querySelectorAll('[data-f]').forEach(i => { body[i.dataset.f] = i.value; });
+      const btn = row.querySelector('[data-save]');
+      btn.disabled = true;
+      try {
+        await api(`/lists/${id}/contacts?contactId=${c.id}`, { method: 'PUT', body });
+        openList(id);
+      } catch (err) {
+        btn.disabled = false;
+        alert(err.message);
+      }
+    };
+    row.querySelector('[data-save]').addEventListener('click', save);
+    row.querySelectorAll('input').forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') save(); }));
+  }));
 
   wrap.querySelectorAll('[data-remove]').forEach(b => b.addEventListener('click', async () => {
     b.disabled = true;

@@ -41,6 +41,30 @@ export async function onRequestPost({ request, env, params, data }) {
   return json({ ok: true, saved: valid.length, skipped });
 }
 
+// PUT → ?contactId= with { email, first_name, last_name, organization }
+//       edit one person (including changing their email)
+export async function onRequestPut({ request, env, params }) {
+  const contactId = Number(new URL(request.url).searchParams.get('contactId'));
+  if (!contactId) return json({ error: 'contactId is required' }, 400);
+  const b = await request.json().catch(() => ({}));
+  const cut = (v, n) => String(v ?? '').trim().slice(0, n);
+  const email = cut(b.email, 200).toLowerCase();
+  if (!isValidEmail(email)) return json({ error: 'That email address doesn’t look valid.' }, 400);
+
+  const listId = Number(params.id);
+  const clash = await env.DB.prepare(
+    'SELECT 1 FROM message_contacts WHERE list_id = ? AND email = ? AND id != ?'
+  ).bind(listId, email, contactId).first();
+  if (clash) return json({ error: 'Someone else on this list already has that email address.' }, 409);
+
+  const res = await env.DB.prepare(`
+    UPDATE message_contacts SET email = ?, first_name = ?, last_name = ?, organization = ?
+     WHERE id = ? AND list_id = ?
+  `).bind(email, cut(b.first_name, 100), cut(b.last_name, 100), cut(b.organization, 200), contactId, listId).run();
+  if (!res.meta.changes) return json({ error: 'Not found' }, 404);
+  return json({ ok: true });
+}
+
 export async function onRequestDelete({ request, env, params }) {
   const contactId = Number(new URL(request.url).searchParams.get('contactId'));
   if (!contactId) return json({ error: 'contactId is required' }, 400);
