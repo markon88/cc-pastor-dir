@@ -107,7 +107,7 @@ async function loadMessages() {
     try {
       const { id } = await api('/campaigns', {
         method: 'POST',
-        body: { from_name: data.defaults.from_name ?? '', reply_to: data.defaults.reply_to ?? '', audience: [] },
+        body: { from_name: data.defaults.from_name ?? '', header: data.defaults.header ?? '', reply_to: data.defaults.reply_to ?? '', audience: [] },
       });
       openCompose(id);
     } catch (err) {
@@ -164,9 +164,14 @@ async function openCompose(id) {
 
     <div class="support-section">
       <div class="support-section-title">From</div>
-      <input type="text" id="msg-from" class="search-input" placeholder="e.g. Jane Smith, Department Director" value="${esc(c.from_name ?? '')}">
-      <p class="support-section-desc" style="margin-top:0;">Shown as the sender name. The address is messages@mail.churchtoolbox.app.</p>
+      <input type="text" id="msg-from" class="search-input" placeholder="Your name, e.g. Jane Smith" value="${esc(c.from_name ?? '')}">
+      <p class="support-section-desc" style="margin-top:0;">Required. Shown as the sender and in the footer. The address is messages@mail.churchtoolbox.app.</p>
       <input type="email" id="msg-replyto" class="search-input" placeholder="Replies go to (email)" value="${esc(c.reply_to ?? '')}">
+    </div>
+
+    <div class="support-section">
+      <div class="support-section-title">Header</div>
+      <input type="text" id="msg-header" class="search-input" maxlength="120" placeholder="Banner at the top of the email (leave blank to use your name)" value="${esc(c.header ?? '')}">
     </div>
 
     <div class="support-section">
@@ -206,6 +211,7 @@ async function openCompose(id) {
     subject: $('msg-subject').value,
     body: textarea.value,
     from_name: $('msg-from').value,
+    header: $('msg-header').value,
     reply_to: $('msg-replyto').value,
     audience: [...wrap.querySelectorAll('.msg-audience input:checked')].map(i => i.value === 'pastors' ? 'pastors' : Number(i.value)),
   });
@@ -276,6 +282,7 @@ async function openCompose(id) {
     const p = collect();
     if (!p.subject.trim() || !p.body.trim()) return alert('Add a subject and a message first.');
     if (!p.audience.length) return alert('Choose at least one list under “To”.');
+    if (!p.from_name.trim()) return alert('Add your name in the From field.');
     let preview;
     try {
       preview = await api(`/campaigns/${id}/preview`);
@@ -365,7 +372,7 @@ function renderSentMessage(c, lists) {
     try {
       const { id } = await api('/campaigns', {
         method: 'POST',
-        body: { subject: c.subject, body: c.body, from_name: c.from_name, reply_to: c.reply_to, audience: c.audience },
+        body: { subject: c.subject, body: c.body, from_name: c.from_name, header: c.header, reply_to: c.reply_to, audience: c.audience },
       });
       openCompose(id);
     } catch (err) {

@@ -19,7 +19,12 @@
 import { isAdmin } from './auth.js';
 
 export const FROM_ADDRESS = 'messages@mail.churchtoolbox.app';
-const TOPIC_SETTING_KEY = 'messages_resend_topic_id';
+// v2: the first topic was named for the conference; these messages are
+// personal, not official conference communication.
+const TOPIC_SETTING_KEY = 'messages_resend_topic_id_v2';
+// Optional extra sentence for the footer (e.g. who builds/maintains the
+// app), kept in app_settings rather than code.
+const FOOTER_NOTE_KEY = 'messages_footer_note';
 const RESEND = 'https://api.resend.com';
 
 export const json = (body, status = 200) => new Response(JSON.stringify(body), {
@@ -134,15 +139,27 @@ function bodyToHtml(body, sample) {
 }
 
 export function cleanFromName(name) {
-  return String(name ?? '').replace(/[<>"\r\n,;]/g, '').trim().slice(0, 80) || 'Carolina Conference';
+  return String(name ?? '').replace(/[<>"\r\n,;]/g, '').trim().slice(0, 80);
+}
+
+export async function getFooterNote(env) {
+  const row = await env.DB.prepare('SELECT value FROM app_settings WHERE key = ?').bind(FOOTER_NOTE_KEY).first();
+  return (row?.value ?? '').trim();
 }
 
 const FONT_STACK = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 // sample: null for the real broadcast (Resend fills merge tags + unsubscribe
 // link per recipient), or a recipient object for preview / test sends.
-export function renderMessage({ subject, body, fromName }, sample = null) {
-  const sender = cleanFromName(fromName);
+// header: the banner text; defaults to the sender's name. These are personal
+// messages from the sender, never presented as official conference mail.
+export function renderMessage({ subject, body, from_name, header }, sample = null, footerNote = '') {
+  const sender = cleanFromName(from_name) || 'the sender';
+  const banner = String(header ?? '').trim().slice(0, 120) || cleanFromName(from_name);
+  const footerLines = [
+    `Sent by ${sender} using the CC Pastor Directory app. Replies go directly to ${sender}.`,
+    footerNote,
+  ].filter(Boolean);
   const unsubscribeUrl = sample ? '#' : '{{{RESEND_UNSUBSCRIBE_URL}}}';
   const mergedSubject = mergeText(subject, sample, false);
 
@@ -158,12 +175,12 @@ export function renderMessage({ subject, body, fromName }, sample = null) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;">
 <tr><td align="center" style="padding:24px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
-<tr><td style="background:#1a5276;padding:14px 24px;font-family:${FONT_STACK};font-size:14px;font-weight:600;color:#ffffff;">${escHtml(sender)}</td></tr>
+${banner ? `<tr><td style="background:#1a5276;padding:14px 24px;font-family:${FONT_STACK};font-size:14px;font-weight:600;color:#ffffff;">${escHtml(banner)}</td></tr>` : ''}
 <tr><td style="padding:24px;font-family:${FONT_STACK};color:#1c2833;">
 ${bodyToHtml(body, sample)}
 </td></tr>
 <tr><td style="padding:16px 24px;background:#f4f5f7;font-family:${FONT_STACK};font-size:12px;line-height:1.5;color:#4a5568;">
-Sent by ${escHtml(sender)} through the Carolina Conference Pastor Directory. Replying to this email reaches the sender directly.
+${footerLines.map(escHtml).join(' ')}
 <a href="${unsubscribeUrl}" style="color:#4a5568;">Unsubscribe from these messages</a>.
 </td></tr>
 </table>
@@ -176,7 +193,7 @@ Sent by ${escHtml(sender)} through the Carolina Conference Pastor Directory. Rep
   const text = [
     mergeText(String(body).replace(/\r\n/g, '\n').trim().replace(/\*\*(.+?)\*\*/g, '$1'), sample, false),
     '—',
-    `Sent by ${sender} through the Carolina Conference Pastor Directory. Replying reaches the sender directly.`,
+    footerLines.join(' '),
     `Unsubscribe: ${unsubscribeUrl}`,
   ].join('\n\n');
 
@@ -221,8 +238,8 @@ async function getTopicId(env) {
   const row = await env.DB.prepare('SELECT value FROM app_settings WHERE key = ?').bind(TOPIC_SETTING_KEY).first();
   if (row?.value) return row.value;
   const topicBody = {
-    name: 'Carolina Conference Messages',
-    description: 'Messages from Carolina Conference departments sent through the Pastor Directory.',
+    name: 'Pastor Directory Messages',
+    description: 'Messages sent by individuals using the CC Pastor Directory app.',
     default_subscription: 'opt_in',
   };
   // visibility: 'public' lists the topic on Resend's preference page; retry
@@ -242,6 +259,7 @@ function csvCell(v) {
 }
 
 export async function startSend(env, campaign, userEmail) {
+  if (!cleanFromName(campaign.from_name)) throw new Error('Add your name in the From field before sending.');
   const recipients = await buildRecipients(env.DB, parseAudience(campaign.audience));
   if (!recipients.length) throw new Error('This message has no recipients with a valid email address.');
 
@@ -313,7 +331,7 @@ export async function advanceSend(env, campaign) {
 
   try {
     const topicId = await getTopicId(env);
-    const { html, text } = renderMessage(campaign, null);
+    const { html, text } = renderMessage(campaign, null, await getFooterNote(env));
     const broadcast = await resend(env, '/broadcasts', {
       method: 'POST',
       body: {

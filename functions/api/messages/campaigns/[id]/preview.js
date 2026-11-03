@@ -1,4 +1,4 @@
-import { json, parseAudience, buildRecipients, renderMessage } from '../../../../_lib/messages.js';
+import { json, parseAudience, buildRecipients, renderMessage, getFooterNote } from '../../../../_lib/messages.js';
 
 // GET → rendered HTML for one sample recipient + the deduped recipient count.
 // ?as=<email> previews as that recipient; defaults to the first one.
@@ -11,7 +11,7 @@ export async function onRequestGet({ request, env, params }) {
   const sample = recipients.find(r => r.email === as) ?? recipients[0]
     ?? { email: '', first_name: 'Sample', last_name: 'Recipient', organization: 'Sample Church' };
 
-  const { subject, html } = renderMessage(c, sample);
+  const { subject, html } = renderMessage(c, sample, await getFooterNote(env));
   return json({
     subject,
     html,

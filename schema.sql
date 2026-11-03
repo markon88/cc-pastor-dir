@@ -181,6 +181,7 @@ CREATE TABLE IF NOT EXISTS message_campaigns (
   subject             TEXT NOT NULL DEFAULT '',
   body                TEXT NOT NULL DEFAULT '',
   from_name           TEXT,
+  header              TEXT,  -- banner text; blank = sender name (migrations/024)
   reply_to            TEXT,
   audience            TEXT NOT NULL DEFAULT '[]',
   status              TEXT NOT NULL DEFAULT 'draft',

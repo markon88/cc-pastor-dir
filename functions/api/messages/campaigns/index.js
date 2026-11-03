@@ -32,12 +32,13 @@ export async function onRequestGet({ env }) {
 export async function onRequestPost({ request, env, data }) {
   const b = await request.json().catch(() => ({}));
   const row = await env.DB.prepare(`
-    INSERT INTO message_campaigns (subject, body, from_name, reply_to, audience, created_by, updated_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
+    INSERT INTO message_campaigns (subject, body, from_name, header, reply_to, audience, created_by, updated_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id
   `).bind(
     String(b.subject ?? '').slice(0, 200),
     String(b.body ?? '').slice(0, 50000),
     String(b.from_name ?? '').slice(0, 80),
+    String(b.header ?? '').slice(0, 120),
     String(b.reply_to ?? '').trim().slice(0, 200),
     JSON.stringify(parseAudience(JSON.stringify(b.audience ?? []))),
     data.user.email, data.user.email,

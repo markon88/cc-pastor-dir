@@ -13,13 +13,14 @@ export async function onRequestPut({ request, env, params, data }) {
   const b = await request.json().catch(() => ({}));
   const res = await env.DB.prepare(`
     UPDATE message_campaigns
-       SET subject = ?, body = ?, from_name = ?, reply_to = ?, audience = ?,
+       SET subject = ?, body = ?, from_name = ?, header = ?, reply_to = ?, audience = ?,
            updated_by = ?, updated_at = datetime('now')
      WHERE id = ? AND status IN (${EDITABLE.map(() => '?').join(',')})
   `).bind(
     String(b.subject ?? '').slice(0, 200),
     String(b.body ?? '').slice(0, 50000),
     String(b.from_name ?? '').slice(0, 80),
+    String(b.header ?? '').slice(0, 120),
     String(b.reply_to ?? '').trim().slice(0, 200),
     JSON.stringify(parseAudience(JSON.stringify(b.audience ?? []))),
     data.user.email, Number(params.id), ...EDITABLE,

@@ -21,7 +21,7 @@ export async function onRequestPost({ env, params, data }) {
   await env.DB.prepare(`
     INSERT INTO app_settings (key, value, updated_by, updated_at) VALUES (?, ?, ?, datetime('now'))
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_by = excluded.updated_by, updated_at = datetime('now')
-  `).bind(DEFAULTS_KEY, JSON.stringify({ from_name: c.from_name, reply_to: c.reply_to }), data.user.email).run();
+  `).bind(DEFAULTS_KEY, JSON.stringify({ from_name: c.from_name, header: c.header, reply_to: c.reply_to }), data.user.email).run();
 
   return json({ ok: true, status: 'importing' });
 }
