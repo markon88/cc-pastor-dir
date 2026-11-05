@@ -16,7 +16,9 @@ export async function onRequestGet({ env }) {
   const [{ results }, defaults] = await env.DB.batch([
     env.DB.prepare(`
       SELECT id, subject, from_name, audience, status, recipient_count, error,
-             created_by, created_at, updated_by, updated_at, sent_by, sent_at
+             created_by, created_at, updated_by, updated_at, sent_by, sent_at, parent_campaign_id,
+             (SELECT COUNT(*) FROM message_recipients r WHERE r.campaign_id = message_campaigns.id) AS tracked_count,
+             (SELECT COUNT(*) FROM message_recipients r WHERE r.campaign_id = message_campaigns.id AND r.responded_at IS NOT NULL) AS responded_count
         FROM message_campaigns ORDER BY COALESCE(sent_at, updated_at) DESC LIMIT 200
     `),
     env.DB.prepare('SELECT value FROM app_settings WHERE key = ?').bind(DEFAULTS_KEY),

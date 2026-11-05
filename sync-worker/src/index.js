@@ -3,10 +3,24 @@ import { syncPastors }       from './pastors.js';
 import { notify }            from './notify.js';
 import { getLastSync, setLastSync, logSync, bumpDataVersion } from './db.js';
 
+// Must match the second cron in wrangler.toml.
+const REMINDER_CRON = '0 14 * * 1-6';
+
+// The Pages app holds the Resend key and email template, so it does the work.
+async function triggerMessageReminders(env) {
+  const res = await fetch('https://cc-pastor-dir.churchtoolbox.app/api/cron/message-reminders', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.CRON_SECRET}` },
+  });
+  console.log(`Message reminders: ${res.status} ${await res.text()}`);
+}
+
 export default {
-  // Runs on cron schedule: Tue & Fri at 9:00 UTC (4 AM EST / 5 AM EDT)
+  // Crons: sync Tue & Fri at 9:00 UTC (4 AM EST / 5 AM EDT); reminders daily.
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(runSync(env, false));
+    // Every cron lands here, so tell them apart or the sync would run daily.
+    if (event.cron === REMINDER_CRON) ctx.waitUntil(triggerMessageReminders(env));
+    else ctx.waitUntil(runSync(env, false));
   },
 
   // Manual HTTP trigger for testing / one-off full syncs

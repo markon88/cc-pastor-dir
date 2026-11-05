@@ -1,4 +1,4 @@
-import { json, parseAudience, buildRecipients, renderMessage, cleanFromName, getFooterNote } from '../../../../_lib/messages.js';
+import { json, recipientsFor, renderMessage, cleanFromName, getFooterNote } from '../../../../_lib/messages.js';
 import { sendEmail } from '../../../../_lib/email.js';
 
 // POST → email a test copy to the signed-in user, filled in with the first
@@ -9,7 +9,7 @@ export async function onRequestPost({ env, params, data }) {
   if (!c) return json({ error: 'Not found' }, 404);
 
   if (!cleanFromName(c.from_name)) return json({ error: 'Add your name in the From field first.' }, 400);
-  const [first] = await buildRecipients(env.DB, parseAudience(c.audience));
+  const [first] = await recipientsFor(env.DB, c);
   const sample = first ?? { first_name: 'Sample', last_name: 'Recipient', organization: 'Sample Church' };
   const { subject, html, text } = renderMessage(c, sample, await getFooterNote(env));
 

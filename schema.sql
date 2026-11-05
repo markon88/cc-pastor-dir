@@ -195,5 +195,26 @@ CREATE TABLE IF NOT EXISTS message_campaigns (
   updated_by          TEXT,
   updated_at          TEXT DEFAULT (datetime('now')),
   sent_by             TEXT,
-  sent_at             TEXT
+  sent_at             TEXT,
+  parent_campaign_id  INTEGER,  -- set on a follow-up; see message_recipients
+  followup_number     INTEGER,
+  remind_after_days   INTEGER NOT NULL DEFAULT 0,  -- nudge the sender after N days; 0 = none
+  reminded_at         TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_message_campaigns_followup
+  ON message_campaigns(parent_campaign_id, followup_number) WHERE parent_campaign_id IS NOT NULL;
+
+-- Who each message went to and who has responded. A follow-up has no rows of
+-- its own: its links record against the parent message.
+CREATE TABLE IF NOT EXISTS message_recipients (
+  campaign_id   INTEGER NOT NULL,
+  email         TEXT NOT NULL,      -- lowercased
+  first_name    TEXT,
+  last_name     TEXT,
+  organization  TEXT,
+  token         TEXT NOT NULL UNIQUE,
+  responded_at  TEXT,
+  responded_via TEXT,               -- 'button' | 'manual'
+  marked_by     TEXT,               -- who ticked them off, for 'manual'
+  PRIMARY KEY (campaign_id, email)
 );

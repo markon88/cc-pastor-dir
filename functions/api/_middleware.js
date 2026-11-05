@@ -2,7 +2,10 @@ import { getSessionFromRequest } from '../_lib/auth.js';
 
 export async function onRequest(context) {
   const { request, next, env } = context;
-  if (new URL(request.url).pathname.startsWith('/api/auth/')) return next();
+  const { pathname } = new URL(request.url);
+  // /api/confirm is opened from follow-up emails and authorizes by token;
+  // /api/cron/ is called by the sync worker and authorizes by CRON_SECRET.
+  if (pathname.startsWith('/api/auth/') || pathname.startsWith('/api/cron/') || pathname === '/api/confirm') return next();
 
   const user = await getSessionFromRequest(request, env.JWT_SECRET);
   if (!user) {

@@ -26,6 +26,10 @@ const TOPIC_SETTING_KEY = 'messages_resend_topic_id_v2';
 // app), kept in app_settings rather than code.
 const FOOTER_NOTE_KEY = 'messages_footer_note';
 const RESEND = 'https://api.resend.com';
+// Public page behind the follow-up button; see functions/api/confirm.js.
+const CONFIRM_URL = 'https://cc-pastor-dir.churchtoolbox.app/api/confirm';
+export const MAX_FOLLOWUPS = 2;
+export const REMINDER_DAYS = [3, 5, 7, 14];
 
 export const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -99,6 +103,42 @@ export async function buildRecipients(db, audience) {
   return [...out.values()];
 }
 
+// Who a message goes to. A follow-up goes to the parent message's recipients
+// who haven't responded, minus the sender (who may be on their own list).
+// Rows include each person's token, so never return these to the browser.
+export async function recipientsFor(db, campaign) {
+  if (!campaign.parent_campaign_id) return buildRecipients(db, parseAudience(campaign.audience));
+  const parent = await db.prepare('SELECT sent_by, reply_to FROM message_campaigns WHERE id = ?')
+    .bind(campaign.parent_campaign_id).first();
+  const sender = [parent?.sent_by, parent?.reply_to].map(e => String(e ?? '').trim().toLowerCase());
+  const { results } = await db.prepare(`
+    SELECT email, first_name, last_name, organization, token FROM message_recipients
+     WHERE campaign_id = ? AND responded_at IS NULL
+     ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE
+  `).bind(campaign.parent_campaign_id).all();
+  return results.filter(r => !sender.includes(r.email)).map(r => ({
+    ...r,
+    first_name: r.first_name ?? '',
+    last_name: r.last_name ?? '',
+    organization: r.organization ?? '',
+  }));
+}
+
+// Replaces any rows from an earlier failed attempt, whose audience may differ.
+async function saveRecipients(db, campaignId, recipients) {
+  const insert = db.prepare(`
+    INSERT INTO message_recipients (campaign_id, email, first_name, last_name, organization, token)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `);
+  await db.batch([
+    db.prepare('DELETE FROM message_recipients WHERE campaign_id = ?').bind(campaignId),
+    ...recipients.map(r => insert.bind(
+      campaignId, r.email, r.first_name, r.last_name, r.organization,
+      crypto.randomUUID().replace(/-/g, ''),
+    )),
+  ]);
+}
+
 // ── Rendering ────────────────────────────────────────────────────────────────
 // Authors write plain text with {{first_name}} / {{last_name}} /
 // {{organization}} placeholders, blank lines between paragraphs, **bold**,
@@ -111,7 +151,7 @@ const MERGE_FIELDS = {
 };
 const MERGE_RE = /\{\{\s*(first_name|last_name|organization)\s*\}\}/gi;
 
-function escHtml(str) {
+export function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
@@ -153,7 +193,7 @@ const FONT_STACK = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica
 // link per recipient), or a recipient object for preview / test sends.
 // header: the banner text; defaults to the sender's name. These are personal
 // messages from the sender, never presented as official conference mail.
-export function renderMessage({ subject, body, from_name, header }, sample = null, footerNote = '') {
+export function renderMessage({ subject, body, from_name, header, parent_campaign_id }, sample = null, footerNote = '') {
   const sender = cleanFromName(from_name) || 'the sender';
   const banner = String(header ?? '').trim().slice(0, 120) || cleanFromName(from_name);
   const footerLines = [
@@ -162,6 +202,11 @@ export function renderMessage({ subject, body, from_name, header }, sample = nul
   ].filter(Boolean);
   const unsubscribeUrl = sample ? '#' : '{{{RESEND_UNSUBSCRIBE_URL}}}';
   const mergedSubject = mergeText(subject, sample, false);
+  // Previews and test sends always use the 'test' link, so trying the button
+  // can never record a response for a real recipient.
+  const confirmUrl = parent_campaign_id
+    ? `${CONFIRM_URL}?t=${sample ? 'test' : '{{{contact.confirm_token|}}}'}`
+    : null;
 
   const html = `<!doctype html>
 <html lang="en" dir="ltr">
@@ -178,6 +223,7 @@ export function renderMessage({ subject, body, from_name, header }, sample = nul
 ${banner ? `<tr><td style="background:#1a5276;padding:14px 24px;font-family:${FONT_STACK};font-size:14px;font-weight:600;color:#ffffff;">${escHtml(banner)}</td></tr>` : ''}
 <tr><td style="padding:24px;font-family:${FONT_STACK};color:#1c2833;">
 ${bodyToHtml(body, sample)}
+${confirmUrl ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0;"><tr><td style="background:#1a5276;border-radius:8px;"><a href="${confirmUrl}" style="display:inline-block;padding:14px 28px;font-size:16px;font-weight:600;color:#ffffff;text-decoration:none;">Yes, I got this</a></td></tr></table><p style="margin:0;font-size:14px;line-height:1.5;color:#4a5568;">This opens a page with one more button. Tap that one too to finish.</p>` : ''}
 </td></tr>
 <tr><td style="padding:16px 24px;background:#f4f5f7;font-family:${FONT_STACK};font-size:12px;line-height:1.5;color:#4a5568;">
 ${footerLines.map(escHtml).join(' ')}
@@ -192,6 +238,7 @@ ${footerLines.map(escHtml).join(' ')}
 
   const text = [
     mergeText(String(body).replace(/\r\n/g, '\n').trim().replace(/\*\*(.+?)\*\*/g, '$1'), sample, false),
+    ...(confirmUrl ? [`Yes, I got this (opens a page with one more button; tap that one too to finish): ${confirmUrl}`] : []),
     '—',
     footerLines.join(' '),
     `Unsubscribe: ${unsubscribeUrl}`,
@@ -260,8 +307,13 @@ function csvCell(v) {
 
 export async function startSend(env, campaign, userEmail) {
   if (!cleanFromName(campaign.from_name)) throw new Error('Add your name in the From field before sending.');
-  const recipients = await buildRecipients(env.DB, parseAudience(campaign.audience));
-  if (!recipients.length) throw new Error('This message has no recipients with a valid email address.');
+  const isFollowUp = !!campaign.parent_campaign_id;
+  const recipients = await recipientsFor(env.DB, campaign);
+  if (!recipients.length) {
+    throw new Error(isFollowUp
+      ? 'Everyone has responded, so there’s nobody left to follow up with.'
+      : 'This message has no recipients with a valid email address.');
+  }
 
   // Claim the draft first so a double-click can't start two sends.
   const claim = await env.DB.prepare(`
@@ -271,14 +323,23 @@ export async function startSend(env, campaign, userEmail) {
   if (!claim.meta.changes) throw new Error('This message is already being sent.');
 
   try {
+    if (!isFollowUp) await saveRecipients(env.DB, campaign.id, recipients);
     await getTopicId(env); // create up front so the final step is a single call
     const segment = await resend(env, '/segments', {
       method: 'POST',
       body: { name: `Message #${campaign.id} — ${campaign.subject}`.slice(0, 100) },
     });
 
-    const csv = ['email,first_name,last_name,organization']
-      .concat(recipients.map(r => [r.email, r.first_name, r.last_name, r.organization].map(csvCell).join(',')))
+    const columns = ['email', 'first_name', 'last_name', 'organization'];
+    const properties = { organization: { column: 'organization', type: 'string' } };
+    if (isFollowUp) {
+      // Rides on the Resend contact so the broadcast can merge it into each
+      // person's link. Resend creates the property on first import.
+      columns.push('token');
+      properties.confirm_token = { column: 'token', type: 'string' };
+    }
+    const csv = [columns.join(',')]
+      .concat(recipients.map(r => columns.map(k => csvCell(r[k])).join(',')))
       .join('\n');
     const form = new FormData();
     form.append('file', new Blob([csv], { type: 'text/csv' }), `message-${campaign.id}.csv`);
@@ -286,7 +347,7 @@ export async function startSend(env, campaign, userEmail) {
       email: 'email',
       first_name: 'first_name',
       last_name: 'last_name',
-      properties: { organization: { column: 'organization', type: 'string' } },
+      properties,
     }));
     form.append('on_conflict', 'upsert');
     form.append('segments', JSON.stringify([{ id: segment.id }]));

@@ -1189,6 +1189,7 @@ html, body {
 .msg-audience { display: flex; flex-direction: column; gap: 8px; }
 .msg-check { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; color: var(--text); cursor: pointer; }
 .msg-check input { margin-top: 3px; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--primary); }
+.msg-recipient-list { max-height: 420px; overflow-y: auto; }
 .msg-merge-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .msg-chip {
   padding: 6px 12px;

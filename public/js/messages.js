@@ -82,8 +82,9 @@ async function loadMessages() {
       <div class="item-name">${esc(c.subject || '(no subject)')}</div>
       <div class="item-sub">
         <span class="msg-status msg-status-${esc(c.status)}">${STATUS_LABEL[c.status] ?? esc(c.status)}</span>
+        ${c.parent_campaign_id ? 'Follow-up · ' : ''}
         ${c.status === 'sent' || c.status === 'importing' || c.status === 'sending'
-          ? `${c.recipient_count ?? 0} recipients · ${esc(fmtDate(c.sent_at || c.updated_at))} · by ${esc(c.sent_by ?? '')}`
+          ? `${c.recipient_count ?? 0} recipients${c.tracked_count ? ` · ${c.responded_count} responded` : ''} · ${esc(fmtDate(c.sent_at || c.updated_at))} · by ${esc(c.sent_by ?? '')}`
           : `Last edited ${esc(fmtDate(c.updated_at))} by ${esc(c.updated_by ?? '')}`}
       </div>
     </div>`;
@@ -146,12 +147,26 @@ async function openCompose(id) {
     ...lists.lists.map(l => ({ value: l.id, label: l.name, count: l.contact_count })),
   ];
 
+  const isFollowUp = !!c.parent_campaign_id;
+  let followUpCount = 0;
+  if (isFollowUp) {
+    try {
+      followUpCount = (await api(`/campaigns/${id}/preview`)).recipientCount;
+    } catch (err) {
+      document.getElementById('msg-compose').innerHTML = `<p class="support-section-desc" style="color:var(--red)">${esc(err.message)}</p>`;
+      return;
+    }
+  }
+
   const wrap = document.getElementById('msg-compose');
   wrap.innerHTML = `
     ${c.status === 'failed' ? `<div class="msg-error-box">The last send attempt failed: ${esc(c.error ?? 'unknown error')}. Fix anything needed and try again.</div>` : ''}
 
     <div class="support-section">
       <div class="support-section-title">To</div>
+      ${isFollowUp ? `
+      <p class="support-section-desc" style="margin-top:0;">Everyone who hasn’t responded yet (${followUpCount} right now). This updates until you press Send. Tick off anyone else on the original message. Use Preview to see the names.</p>
+      ` : `
       <div class="msg-audience">
         ${audienceOptions.map(o => `
           <label class="msg-check">
@@ -160,6 +175,7 @@ async function openCompose(id) {
           </label>`).join('')}
       </div>
       <p class="support-section-desc" style="margin-top:0;">Someone on more than one list gets one copy. Manage lists on the Lists tab.</p>
+      `}
     </div>
 
     <div class="support-section">
@@ -188,8 +204,18 @@ async function openCompose(id) {
         <button type="button" class="msg-chip" data-merge="organization">Church / School</button>
       </div>
       <textarea id="msg-body-input" class="feedback-textarea msg-textarea" rows="14" placeholder="Dear {{first_name}},&#10;&#10;…">${esc(c.body)}</textarea>
-      <p class="support-section-desc" style="margin-top:-8px;">Leave a blank line between paragraphs. Wrap text in **double asterisks** for bold. Links are clickable automatically. An unsubscribe link is added at the bottom.</p>
+      <p class="support-section-desc" style="margin-top:-8px;">Leave a blank line between paragraphs. Wrap text in **double asterisks** for bold. Links are clickable automatically. An unsubscribe link is added at the bottom.${isFollowUp ? ' A “Yes, I got this” button is added right below your message, so keep it short. It opens a page with a second button to tap, and the email says so.' : ''}</p>
     </div>
+
+    ${c.followup_number >= c.maxFollowUps ? '' : `
+    <div class="support-section">
+      <div class="support-section-title">Remind me to follow up</div>
+      <select id="msg-remind" class="search-input">
+        ${[[0, 'No reminder'], [3, 'After 3 days'], [5, 'After 5 days'], [7, 'After 7 days'], [14, 'After 14 days']]
+          .map(([v, label]) => `<option value="${v}" ${c.remind_after_days === v ? 'selected' : ''}>${label}</option>`).join('')}
+      </select>
+      <p class="support-section-desc" style="margin-top:0;">Emails whoever presses Send with how many people haven’t responded. Skipped if everyone has. Nothing goes to recipients.</p>
+    </div>`}
 
     <p id="msg-save-state" class="support-section-desc" style="min-height:1em;"></p>
 
@@ -214,6 +240,7 @@ async function openCompose(id) {
     header: $('msg-header').value,
     reply_to: $('msg-replyto').value,
     audience: [...wrap.querySelectorAll('.msg-audience input:checked')].map(i => i.value === 'pastors' ? 'pastors' : Number(i.value)),
+    remind_after_days: Number($('msg-remind')?.value ?? 0),
   });
 
   let saveTimer = null;
@@ -281,7 +308,7 @@ async function openCompose(id) {
     if (!(await save())) return;
     const p = collect();
     if (!p.subject.trim() || !p.body.trim()) return alert('Add a subject and a message first.');
-    if (!p.audience.length) return alert('Choose at least one list under “To”.');
+    if (!isFollowUp && !p.audience.length) return alert('Choose at least one list under “To”.');
     if (!p.from_name.trim()) return alert('Add your name in the From field.');
     let preview;
     try {
@@ -289,7 +316,9 @@ async function openCompose(id) {
     } catch (err) {
       return alert(err.message);
     }
-    if (!preview.recipientCount) return alert('None of the selected lists has anyone with a valid email address.');
+    if (!preview.recipientCount) {
+      return alert(isFollowUp ? 'Everyone has responded, so there’s nobody left to follow up with.' : 'None of the selected lists has anyone with a valid email address.');
+    }
     if (!confirm(`Send “${p.subject}” to ${preview.recipientCount} people now?\n\nThis can't be undone.`)) return;
 
     const btn = $('msg-send');
@@ -363,11 +392,14 @@ function renderSentMessage(c, lists) {
         ${c.recipient_count ?? 0} recipients · ${esc(fmtDate(c.sent_at || c.updated_at))} · by ${esc(c.sent_by ?? '')}</div>
       <div class="item-sub"><strong>To:</strong> ${esc(names.join(', '))}</div>
       <div class="item-sub"><strong>From:</strong> ${esc(c.from_name ?? '')}${c.reply_to ? ` · replies to ${esc(c.reply_to)}` : ''}</div>
+      ${c.remind_after_days ? `<div class="item-sub"><strong>Reminder:</strong> ${c.reminded_at ? `handled ${esc(fmtDate(c.reminded_at))}` : `${c.remind_after_days} days after sending, to ${esc(c.sent_by ?? '')}`}</div>` : ''}
     </div>
+    <div id="msg-responses"></div>
     <div class="detail-cta-row"><button type="button" class="support-btn support-btn-alt" id="msg-duplicate">Use as a New Draft</button></div>
     <div id="msg-preview-area"></div>
   `;
   showPreview(c.id, document.getElementById('msg-preview-area'));
+  renderResponses(c);
   document.getElementById('msg-duplicate').addEventListener('click', async () => {
     try {
       const { id } = await api('/campaigns', {
@@ -376,6 +408,88 @@ function renderSentMessage(c, lists) {
       });
       openCompose(id);
     } catch (err) {
+      alert(err.message);
+    }
+  });
+}
+
+// The checklist always belongs to the original message; a follow-up's button
+// taps record there too.
+async function renderResponses(c) {
+  const area = document.getElementById('msg-responses');
+  const rootId = c.parent_campaign_id ?? c.id;
+  let recipients;
+  try {
+    ({ recipients } = await api(`/campaigns/${rootId}/recipients`));
+  } catch (err) {
+    area.innerHTML = `<p class="support-section-desc" style="color:var(--red)">${esc(err.message)}</p>`;
+    return;
+  }
+  if (!recipients.length) return; // sent before recipients were recorded
+
+  const followups = c.followups ?? [];
+  const sentFollowUps = followups.filter(f => f.status === 'sent').length;
+  const openFollowUp = followups.length > sentFollowUps;
+  const canFollowUp = !c.parent_campaign_id && (openFollowUp || sentFollowUps < c.maxFollowUps);
+  const followUpLabel = openFollowUp ? 'Open Follow-Up Draft'
+    : sentFollowUps ? 'Send a Second Reminder' : 'Follow Up with Non-Responders';
+
+  area.innerHTML = `
+    <div class="support-section">
+      <div class="support-section-title">Responses</div>
+      <div class="item-sub" id="msg-response-count"></div>
+      <input type="search" id="msg-response-filter" class="search-input" placeholder="Find a person">
+      <div class="msg-audience msg-recipient-list">
+        ${recipients.map(r => `
+          <label class="msg-check" data-search="${esc(`${r.first_name ?? ''} ${r.last_name ?? ''} ${r.email} ${r.organization ?? ''}`.toLowerCase())}">
+            <input type="checkbox" value="${esc(r.email)}" ${r.responded_at ? 'checked' : ''}>
+            <span>${esc(`${r.first_name ?? ''} ${r.last_name ?? ''}`.trim() || r.email)}
+              ${r.responded_via === 'button' ? `<span class="item-sub">(tapped the button ${esc(fmtDate(r.responded_at))})</span>` : ''}</span>
+          </label>`).join('')}
+      </div>
+      <p class="support-section-desc" style="margin-top:0;">Tick off anyone who replied by email, phone, or text. Ticked people won’t get a follow-up.</p>
+    </div>
+    ${canFollowUp ? '<div class="detail-cta-row"><button type="button" class="support-btn" id="msg-followup"></button></div>' : ''}
+    ${!c.parent_campaign_id && !canFollowUp ? `<p class="support-section-desc">This message has had its ${c.maxFollowUps} follow-ups.</p>` : ''}
+  `;
+
+  const boxes = [...area.querySelectorAll('.msg-recipient-list input')];
+  const followUpBtn = document.getElementById('msg-followup');
+  const refresh = () => {
+    const done = boxes.filter(b => b.checked).length;
+    document.getElementById('msg-response-count').textContent = `${done} of ${boxes.length} responded`;
+    if (followUpBtn) {
+      followUpBtn.textContent = followUpLabel;
+      followUpBtn.disabled = done === boxes.length;
+    }
+  };
+  refresh();
+
+  boxes.forEach(b => b.addEventListener('change', async () => {
+    refresh();
+    try {
+      await api(`/campaigns/${rootId}/recipients`, { method: 'PUT', body: { email: b.value, responded: b.checked } });
+    } catch (err) {
+      b.checked = !b.checked;
+      refresh();
+      alert(`Couldn't save that: ${err.message}`);
+    }
+  }));
+
+  document.getElementById('msg-response-filter').addEventListener('input', e => {
+    const q = e.target.value.trim().toLowerCase();
+    area.querySelectorAll('.msg-recipient-list .msg-check').forEach(l => {
+      l.style.display = l.dataset.search.includes(q) ? '' : 'none';
+    });
+  });
+
+  followUpBtn?.addEventListener('click', async () => {
+    followUpBtn.disabled = true;
+    try {
+      const { id } = await api(`/campaigns/${c.id}/followup`, { method: 'POST' });
+      openCompose(id);
+    } catch (err) {
+      followUpBtn.disabled = false;
       alert(err.message);
     }
   });

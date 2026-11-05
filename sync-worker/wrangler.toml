@@ -10,10 +10,13 @@ database_id   = "4f1bf013-7023-4281-b04a-9e08dcfc0a5f"
 
 [triggers]
 # Tuesday and Friday at 9:00 UTC = 4:00 AM EST / 5:00 AM EDT
-crons = ["0 9 * * 3,6"]
+# Sunday-Friday at 14:00 UTC = 9:00 AM EST / 10:00 AM EDT: Messages follow-up
+# reminders. Skips Saturday (Sabbath); one due then goes out Sunday.
+crons = ["0 9 * * 3,6", "0 14 * * 1-6"]
 
 # Secrets to set via: wrangler secret put <NAME>
 #   EADVENTIST_USER
 #   EADVENTIST_PASS
 #   NOTIFY_WEBHOOK_URL   (optional — POST payload on new items)
 #   SYNC_SECRET          (protects the manual HTTP trigger)
+#   CRON_SECRET          (same value as the Pages app's CRON_SECRET)
